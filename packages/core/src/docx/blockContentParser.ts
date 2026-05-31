@@ -34,6 +34,7 @@ import {
   getTextBoxContentElement,
   parseTextBoxContent,
 } from './textBoxParser';
+import { isShapeDrawing, parseShapeFromDrawing } from './shapeParser';
 
 // ============================================================================
 // BULLET MARKER CONVERSION
@@ -162,52 +163,14 @@ function enrichParagraphTextBoxes(
 
   // Walk into <mc:AlternateContent> wrappers too: Word stores anchored
   // wps:wsp text boxes inside Choice Requires="wps" (Fallback is VML).
-  function processDrawing(drawingEl: XmlElement): void {
-    if (!isTextBoxDrawing(drawingEl)) return;
-
-    const textBox = parseTextBox(drawingEl);
-    if (!textBox) return;
-
-    // Navigate to wps:wsp to get the txbxContent element
-    const wsp = findDeep(drawingEl, 'wps', 'wsp');
-    if (wsp) {
-      const txbxContentEl = getTextBoxContentElement(wsp);
-      if (txbxContentEl) {
-        textBox.content = parseTextBoxContent(
-          txbxContentEl,
-          parseParagraph,
-          null, // table parser not needed for most text boxes
-          styles,
-          theme,
-          numbering,
-          rels ?? undefined,
-          media ?? undefined
-        );
-      }
-    }
-
-    // Convert to Shape with textBody and inject as ShapeContent
-    const shape: Shape = {
-      type: 'shape',
-      shapeType: 'rect',
-      size: textBox.size,
-      position: textBox.position,
-      wrap: textBox.wrap,
-      fill: textBox.fill,
-      outline: textBox.outline,
-      textBody: {
-        content: textBox.content,
-        margins: textBox.margins,
-      },
-    };
-    if (textBox.id) shape.id = textBox.id;
-
+  // Attach a parsed shape to the best-matching run in the paragraph.
+  // Clamp to the last parsed run: runIndex can outrun paragraph.content
+  // when an <w:r> contributes nothing parseable. Best-effort attachment —
+  // anchored shapes are off-flow, so the owning run matters less than
+  // keeping the shape from being dropped.
+  function injectShapeContent(shape: Shape): void {
     const shapeContent: ShapeContent = { type: 'shape', shape };
 
-    // Clamp to the last parsed run: runIndex can outrun paragraph.content
-    // when an <w:r> contributes nothing parseable. Best-effort attachment —
-    // anchored boxes are off-flow, so the owning run matters less than
-    // keeping the shape from being dropped.
     let targetIdx = runIndex;
     if (targetIdx >= paragraph.content.length) {
       targetIdx = -1;
@@ -223,6 +186,61 @@ function enrichParagraphTextBoxes(
       if (parsedContent.type === 'run') {
         parsedContent.content.push(shapeContent);
       }
+    }
+  }
+
+  function processDrawing(drawingEl: XmlElement): void {
+    // Text boxes carry inline paragraph content and need the full text-box
+    // pipeline (parseTextBox + recursive content parsing).
+    if (isTextBoxDrawing(drawingEl)) {
+      const textBox = parseTextBox(drawingEl);
+      if (!textBox) return;
+
+      // Navigate to wps:wsp to get the txbxContent element
+      const wsp = findDeep(drawingEl, 'wps', 'wsp');
+      if (wsp) {
+        const txbxContentEl = getTextBoxContentElement(wsp);
+        if (txbxContentEl) {
+          textBox.content = parseTextBoxContent(
+            txbxContentEl,
+            parseParagraph,
+            null, // table parser not needed for most text boxes
+            styles,
+            theme,
+            numbering,
+            rels ?? undefined,
+            media ?? undefined
+          );
+        }
+      }
+
+      // Convert to Shape with textBody and inject as ShapeContent
+      const shape: Shape = {
+        type: 'shape',
+        shapeType: 'rect',
+        size: textBox.size,
+        position: textBox.position,
+        wrap: textBox.wrap,
+        fill: textBox.fill,
+        outline: textBox.outline,
+        textBody: {
+          content: textBox.content,
+          margins: textBox.margins,
+        },
+      };
+      if (textBox.id) shape.id = textBox.id;
+
+      injectShapeContent(shape);
+      return;
+    }
+
+    // Non-text-box geometry shapes: wps:wsp with a:prstGeom/a:custGeom but no
+    // txbx. parseImage returns null for these, so without this branch they are
+    // silently dropped on import. parseShapeFromDrawing preserves the preset
+    // geometry, fill, outline, transform, size and anchor position.
+    if (isShapeDrawing(drawingEl)) {
+      const shape = parseShapeFromDrawing(drawingEl);
+      if (shape) injectShapeContent(shape);
     }
   }
 
