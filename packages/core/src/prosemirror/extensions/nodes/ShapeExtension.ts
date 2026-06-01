@@ -53,6 +53,11 @@ export interface ShapeAttrs {
   glowColor?: string;
   /** Glow radius in pixels */
   glowRadius?: number;
+  /** Floating position (mirrors ImageRun.position / wp:positionH/V) */
+  position?: {
+    horizontal?: { relativeTo?: string; posOffset?: number; align?: string };
+    vertical?: { relativeTo?: string; posOffset?: number; align?: string };
+  } | null;
 }
 
 export const ShapeExtension = createNodeExtension({
@@ -89,6 +94,7 @@ export const ShapeExtension = createNodeExtension({
       shadowOffsetY: { default: null },
       glowColor: { default: null },
       glowRadius: { default: null },
+      position: { default: null },
     },
     parseDOM: [
       {
@@ -118,6 +124,7 @@ export const ShapeExtension = createNodeExtension({
             shadowOffsetY: el.dataset.shadowOffsetY ? Number(el.dataset.shadowOffsetY) : undefined,
             glowColor: el.dataset.glowColor || undefined,
             glowRadius: el.dataset.glowRadius ? Number(el.dataset.glowRadius) : undefined,
+            position: el.dataset.position ? JSON.parse(el.dataset.position) : undefined,
           };
         },
       },
@@ -157,6 +164,7 @@ export const ShapeExtension = createNodeExtension({
         domAttrs['data-shadow-offset-y'] = String(attrs.shadowOffsetY);
       if (attrs.glowColor) domAttrs['data-glow-color'] = attrs.glowColor;
       if (attrs.glowRadius != null) domAttrs['data-glow-radius'] = String(attrs.glowRadius);
+      if (attrs.position != null) domAttrs['data-position'] = JSON.stringify(attrs.position);
 
       // Build styles
       const styles: string[] = [

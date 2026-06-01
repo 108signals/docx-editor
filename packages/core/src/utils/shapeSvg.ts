@@ -166,11 +166,11 @@ export function getShapeSVG(type: string, w: number, h: number): string {
     }
     case 'upArrow': {
       const p = rightArrowPath(h, w);
-      return `<g transform="rotate(-90,${w/2},${h/2}) translate(${(w-h)/2},${(h-w)/2})">${p}</g>`;
+      return `<g transform="rotate(-90,${w / 2},${h / 2}) translate(${(w - h) / 2},${(h - w) / 2})">${p}</g>`;
     }
     case 'downArrow': {
       const p = rightArrowPath(h, w);
-      return `<g transform="rotate(90,${w/2},${h/2}) translate(${(w-h)/2},${(h-w)/2})">${p}</g>`;
+      return `<g transform="rotate(90,${w / 2},${h / 2}) translate(${(w - h) / 2},${(h - w) / 2})">${p}</g>`;
     }
     case 'leftRightArrow': {
       // Two arrowheads facing left and right
@@ -205,7 +205,7 @@ export function getShapeSVG(type: string, w: number, h: number): string {
     case 'homePlate':
     case 'notchedRightArrow': {
       const cut = w * 0.25;
-      const pts = `0,0 ${w - cut},0 ${w},${h/2} ${w - cut},${h} 0,${h} ${cut},${h/2}`;
+      const pts = `0,0 ${w - cut},0 ${w},${h / 2} ${w - cut},${h} 0,${h} ${cut},${h / 2}`;
       return `<polygon points="${pts}" />`;
     }
 
@@ -213,18 +213,18 @@ export function getShapeSVG(type: string, w: number, h: number): string {
     case 'flowChartProcess':
       return `<rect x="0" y="0" width="${w}" height="${h}" />`;
     case 'flowChartAlternateProcess':
-      return `<rect x="0" y="0" width="${w}" height="${h}" rx="${Math.min(w,h)*0.15}" />`;
+      return `<rect x="0" y="0" width="${w}" height="${h}" rx="${Math.min(w, h) * 0.15}" />`;
     case 'flowChartDecision':
-      return `<polygon points="${w/2},0 ${w},${h/2} ${w/2},${h} 0,${h/2}" />`;
+      return `<polygon points="${w / 2},0 ${w},${h / 2} ${w / 2},${h} 0,${h / 2}" />`;
     case 'flowChartConnector':
-      return `<ellipse cx="${w/2}" cy="${h/2}" rx="${w/2}" ry="${h/2}" />`;
+      return `<ellipse cx="${w / 2}" cy="${h / 2}" rx="${w / 2}" ry="${h / 2}" />`;
     case 'flowChartTerminator': {
       const r = Math.min(w, h) / 2;
       return `<rect x="0" y="0" width="${w}" height="${h}" rx="${r}" />`;
     }
     case 'flowChartPreparation': {
       const in2 = w * 0.2;
-      return `<polygon points="${in2},0 ${w-in2},0 ${w},${h/2} ${w-in2},${h} ${in2},${h} 0,${h/2}" />`;
+      return `<polygon points="${in2},0 ${w - in2},0 ${w},${h / 2} ${w - in2},${h} ${in2},${h} 0,${h / 2}" />`;
     }
     case 'flowChartManualInput': {
       const slant = h * 0.25;
@@ -233,46 +233,46 @@ export function getShapeSVG(type: string, w: number, h: number): string {
     case 'flowChartDocument': {
       const bump = h * 0.15;
       const by = h - bump;
-      return `<path d="M0,0 H${w} V${by} Q${w*0.75},${h} ${w/2},${by} Q${w*0.25},${by-bump*2} 0,${by} Z" />`;
+      return `<path d="M0,0 H${w} V${by} Q${w * 0.75},${h} ${w / 2},${by} Q${w * 0.25},${by - bump * 2} 0,${by} Z" />`;
     }
     case 'flowChartInputOutput': {
       const off = w * 0.2;
-      return `<polygon points="${off},0 ${w},0 ${w-off},${h} 0,${h}" />`;
+      return `<polygon points="${off},0 ${w},0 ${w - off},${h} 0,${h}" />`;
     }
     case 'flowChartPredefinedProcess': {
       const bar = w * 0.1;
       return `<g>
         <rect x="0" y="0" width="${w}" height="${h}" />
         <line x1="${bar}" y1="0" x2="${bar}" y2="${h}" stroke-width="1" />
-        <line x1="${w-bar}" y1="0" x2="${w-bar}" y2="${h}" stroke-width="1" />
+        <line x1="${w - bar}" y1="0" x2="${w - bar}" y2="${h}" stroke-width="1" />
       </g>`;
     }
     case 'flowChartDelay': {
       const r = h / 2;
-      return `<path d="M0,0 H${w-r} A${r},${r} 0 0 1 ${w-r},${h} H0 Z" />`;
+      return `<path d="M0,0 H${w - r} A${r},${r} 0 0 1 ${w - r},${h} H0 Z" />`;
     }
     case 'flowChartDisplay': {
       const r = h / 2;
       const lx = w * 0.2;
-      return `<path d="M${lx},0 H${w-r} A${r},${r} 0 0 1 ${w-r},${h} H${lx} L0,${h/2} Z" />`;
+      return `<path d="M${lx},0 H${w - r} A${r},${r} 0 0 1 ${w - r},${h} H${lx} L0,${h / 2} Z" />`;
     }
     case 'flowChartSort':
-      return `<polygon points="${w/2},0 ${w},${h/2} ${w/2},${h} 0,${h/2}" />`;
+      return `<polygon points="${w / 2},0 ${w},${h / 2} ${w / 2},${h} 0,${h / 2}" />`;
     case 'flowChartSummingJunction':
     case 'flowChartOr': {
-      const r = Math.min(w,h)/2;
-      const cx2 = w/2, cy2 = h/2;
+      const r = Math.min(w, h) / 2;
+      const cx2 = w / 2, cy2 = h / 2;
       return `<g>
         <ellipse cx="${cx2}" cy="${cy2}" rx="${r}" ry="${r}" />
-        <line x1="${cx2}" y1="${cy2-r}" x2="${cx2}" y2="${cy2+r}" />
-        <line x1="${cx2-r}" y1="${cy2}" x2="${cx2+r}" y2="${cy2}" />
+        <line x1="${cx2}" y1="${cy2 - r}" x2="${cx2}" y2="${cy2 + r}" />
+        <line x1="${cx2 - r}" y1="${cy2}" x2="${cx2 + r}" y2="${cy2}" />
       </g>`;
     }
     case 'flowChartMagneticDisk': {
       const ry = h * 0.15;
       return `<g>
-        <path d="M0,${ry} A${w/2},${ry} 0 0 1 ${w},${ry} V${h-ry} A${w/2},${ry} 0 0 1 0,${h-ry} Z" />
-        <path d="M0,${ry} A${w/2},${ry} 0 0 0 ${w},${ry}" fill="none" />
+        <path d="M0,${ry} A${w / 2},${ry} 0 0 1 ${w},${ry} V${h - ry} A${w / 2},${ry} 0 0 1 0,${h - ry} Z" />
+        <path d="M0,${ry} A${w / 2},${ry} 0 0 0 ${w},${ry}" fill="none" />
       </g>`;
     }
 
@@ -295,7 +295,7 @@ export function getShapeSVG(type: string, w: number, h: number): string {
       const r = Math.min(w, bodyH) * 0.1;
       return `<g>
         <rect x="0" y="0" width="${w}" height="${bodyH}" rx="${r}" />
-        <polygon points="${w*0.3},${bodyH} ${w*0.2},${h} ${w*0.45},${bodyH}" />
+        <polygon points="${w * 0.3},${bodyH} ${w * 0.2},${h} ${w * 0.45},${bodyH}" />
       </g>`;
     }
 
@@ -304,7 +304,7 @@ export function getShapeSVG(type: string, w: number, h: number): string {
     case 'mathPlus': {
       const t = Math.min(w, h) * 0.3;
       const mx = (w - t) / 2, my = (h - t) / 2;
-      return `<polygon points="${mx},0 ${mx+t},0 ${mx+t},${my} ${w},${my} ${w},${my+t} ${mx+t},${my+t} ${mx+t},${h} ${mx},${h} ${mx},${my+t} 0,${my+t} 0,${my} ${mx},${my}" />`;
+      return `<polygon points="${mx},0 ${mx + t},0 ${mx + t},${my} ${w},${my} ${w},${my + t} ${mx + t},${my + t} ${mx + t},${h} ${mx},${h} ${mx},${my + t} 0,${my + t} 0,${my} ${mx},${my}" />`;
     }
 
     // ── Rectangle (default) ───────────────────────────────────────────────

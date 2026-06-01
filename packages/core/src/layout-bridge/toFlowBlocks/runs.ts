@@ -403,6 +403,7 @@ export function paragraphToRuns(
         wrapType: (child.attrs.wrapType as string | undefined) ?? undefined,
         displayMode: (child.attrs.displayMode as 'inline' | 'block' | 'float' | undefined) ?? undefined,
         cssFloat: (child.attrs.cssFloat as 'left' | 'right' | 'none' | undefined) ?? undefined,
+        position: (child.attrs.position as import('../../layout-engine/types').ImageRunPosition | undefined) ?? undefined,
         isInsertion: changeFmt.isInsertion,
         isDeletion: changeFmt.isDeletion,
         changeAuthor: changeFmt.changeAuthor,

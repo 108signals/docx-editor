@@ -229,7 +229,7 @@ export function usePagesPointer(opts: UsePagesPointerOptions): UsePagesPointerRe
 
   // Trampoline so useDragAutoScroll's callback can reach getPositionFromMouse
   // without forming a closure cycle. Assigned every render below.
-  const dragExtendRef = useRef<(cx: number, cy: number) => void>(() => {});
+  const dragExtendRef = useRef<(cx: number, cy: number) => void>(() => { });
 
   const dragAutoScrollCallbackRef = useCallback((cx: number, cy: number) => {
     dragExtendRef.current(cx, cy);
@@ -837,7 +837,7 @@ export function usePagesPointer(opts: UsePagesPointerOptions): UsePagesPointerRe
       if (!imageInfo) {
         const sel = view.state.selection;
         if (sel instanceof NodeSelection &&
-            (sel.node.type.name === 'image' || sel.node.type.name === 'shape')) {
+          (sel.node.type.name === 'image' || sel.node.type.name === 'shape')) {
           imageInfo = readImageNodeAt(sel.from);
           if (imageInfo) {
             const inlineEl = pagesContainerRef.current?.querySelector(

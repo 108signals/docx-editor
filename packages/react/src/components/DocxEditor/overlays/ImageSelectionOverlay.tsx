@@ -342,6 +342,11 @@ export function ImageSelectionOverlay({
       const DRAG_THRESHOLD = 4; // px before considering it a drag
       const startX = e.clientX;
       const startY = e.clientY;
+      // Record where inside the shape the user clicked so the ghost stays
+      // anchored to that click point (not always centered on cursor).
+      const shapeScreenRect = imageInfo.element.getBoundingClientRect();
+      const clickOffsetX = startX - shapeScreenRect.left;
+      const clickOffsetY = startY - shapeScreenRect.top;
       let dragStarted = false;
       let ghostEl: HTMLElement | null = null;
 
@@ -370,8 +375,8 @@ export function ImageSelectionOverlay({
         }
 
         if (ghostEl) {
-          ghostEl.style.left = `${moveEvent.clientX - overlayRect.width / 2}px`;
-          ghostEl.style.top = `${moveEvent.clientY - overlayRect.height / 2}px`;
+          ghostEl.style.left = `${moveEvent.clientX - clickOffsetX}px`;
+          ghostEl.style.top = `${moveEvent.clientY - clickOffsetY}px`;
         }
       };
 

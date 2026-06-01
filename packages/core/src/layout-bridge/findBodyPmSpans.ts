@@ -53,8 +53,15 @@ export function findBodyPmAnchors(container: ParentNode): HTMLElement[] {
  * Used for scroll anchors and image `NodeSelection` resolution where the
  * caller already knows the exact PM position it wants to find. Returns
  * `null` for non-finite inputs so callers don't need to guard.
+ *
+ * Also searches the floating-image layers so that shapes/images rendered
+ * outside `.layout-page-content` (in `wrapType: 'square'` etc.) are found.
  */
 export function findBodyPmAnchor(container: ParentNode, pmStart: number): HTMLElement | null {
   if (!Number.isFinite(pmStart)) return null;
-  return container.querySelector<HTMLElement>(`${BODY_SCOPE} [data-pm-start="${pmStart}"]`);
+  return (
+    container.querySelector<HTMLElement>(`${BODY_SCOPE} [data-pm-start="${pmStart}"]`) ??
+    container.querySelector<HTMLElement>(`.layout-page-floating-image [data-pm-start="${pmStart}"]`) ??
+    container.querySelector<HTMLElement>(`.layout-cell-floating-image [data-pm-start="${pmStart}"]`)
+  );
 }

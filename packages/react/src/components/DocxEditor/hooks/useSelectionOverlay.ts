@@ -216,6 +216,10 @@ export function useSelectionOverlay(opts: UseSelectionOverlayOptions): UseSelect
         const isImageOrShape =
           sel instanceof NodeSelection &&
           (sel.node.type.name === 'image' || sel.node.type.name === 'shape');
+        // Skip control-box updates while the user is actively dragging/resizing —
+        // PM state may change mid-interaction (e.g. inline drag delete+insert) and
+        // we don't want the box to jump to a stale intermediate position.
+        if (isImageInteractingRef.current) return;
         if (isImageOrShape) {
           const pmPos = sel.from;
           const imgEl = pagesContainerRef.current
