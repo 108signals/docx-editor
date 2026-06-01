@@ -340,7 +340,7 @@ export const ImageExtension = createNodeExtension({
       (pos: number, target: ImageLayoutTarget, opts?: SetImageWrapTypeOptions): Command =>
       (state, dispatch) => {
         const node = state.doc.nodeAt(pos);
-        if (!node || node.type !== imageType) return false;
+        if (!node || (node.type !== imageType && node.type.name !== 'shape')) return false;
         const attrs = node.attrs as ImageAttrs;
         const next = resolveAnchorAttrs(
           target,
