@@ -74,6 +74,7 @@ export function renderFloatingImagesLayer(
 
     const img = doc.createElement('img');
     img.src = floatImg.src;
+    img.draggable = false; // prevent browser's native drag ghost
     img.style.width = `${floatImg.width}px`;
     img.style.height = `${floatImg.height}px`;
     img.style.display = 'block';

@@ -10,6 +10,7 @@
  */
 
 import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import type { CSSProperties } from 'react';
 
 // =============================================================================
@@ -166,6 +167,14 @@ export function ImageSelectionOverlay({
   const [resizeWidth, setResizeWidth] = useState(0);
   const [resizeHeight, setResizeHeight] = useState(0);
   const [overlayRect, setOverlayRect] = useState<{
+    left: number;
+    top: number;
+    width: number;
+    height: number;
+  } | null>(null);
+  // Ghost rect in fixed/viewport coordinates — shown during drag as a preview.
+  // Using React state (+ portal) so it is always cleaned up on component unmount.
+  const [ghostRect, setGhostRect] = useState<{
     left: number;
     top: number;
     width: number;
@@ -347,8 +356,24 @@ export function ImageSelectionOverlay({
       const shapeScreenRect = imageInfo.element.getBoundingClientRect();
       const clickOffsetX = startX - shapeScreenRect.left;
       const clickOffsetY = startY - shapeScreenRect.top;
+      const ghostWidth = overlayRect.width;
+      const ghostHeight = overlayRect.height;
       let dragStarted = false;
-      let ghostEl: HTMLElement | null = null;
+
+      const cleanup = () => {
+        window.removeEventListener('mousemove', handleMouseMove);
+        window.removeEventListener('mouseup', handleMouseUp);
+        window.removeEventListener('keydown', handleKeyDown);
+        setGhostRect(null);
+        setIsDragging(false);
+      };
+
+      const handleKeyDown = (keyEvent: KeyboardEvent) => {
+        if (keyEvent.key === 'Escape') {
+          cleanup();
+          onDragEndRef.current?.();
+        }
+      };
 
       const handleMouseMove = (moveEvent: MouseEvent) => {
         const dx = moveEvent.clientX - startX;
@@ -362,34 +387,21 @@ export function ImageSelectionOverlay({
           dragStarted = true;
           setIsDragging(true);
           onDragStartRef.current?.();
-
-          // Create ghost element
-          ghostEl = document.createElement('div');
-          ghostEl.style.cssText =
-            'position: fixed; pointer-events: none; z-index: 10000; ' +
-            'opacity: 0.5; border: 2px dashed #2563eb; border-radius: 4px; ' +
-            'background: rgba(37, 99, 235, 0.1);';
-          ghostEl.style.width = `${overlayRect.width}px`;
-          ghostEl.style.height = `${overlayRect.height}px`;
-          document.body.appendChild(ghostEl);
+          window.addEventListener('keydown', handleKeyDown);
         }
 
-        if (ghostEl) {
-          ghostEl.style.left = `${moveEvent.clientX - clickOffsetX}px`;
-          ghostEl.style.top = `${moveEvent.clientY - clickOffsetY}px`;
-        }
+        // Update React-managed ghost via state (portal renders it at body level).
+        // This ensures cleanup on unmount and prevents orphaned DOM elements.
+        setGhostRect({
+          left: moveEvent.clientX - clickOffsetX,
+          top: moveEvent.clientY - clickOffsetY,
+          width: ghostWidth,
+          height: ghostHeight,
+        });
       };
 
       const handleMouseUp = (upEvent: MouseEvent) => {
-        window.removeEventListener('mousemove', handleMouseMove);
-        window.removeEventListener('mouseup', handleMouseUp);
-
-        if (ghostEl) {
-          ghostEl.remove();
-          ghostEl = null;
-        }
-
-        setIsDragging(false);
+        cleanup();
 
         if (dragStarted) {
           const info = imageInfoRef.current;
@@ -403,7 +415,7 @@ export function ImageSelectionOverlay({
       window.addEventListener('mousemove', handleMouseMove);
       window.addEventListener('mouseup', handleMouseUp);
     },
-    [imageInfo, overlayRect]
+    [imageInfo, overlayRect, setGhostRect]
   );
 
   // Always render the container div so the ref is available for position calculation.
@@ -485,6 +497,29 @@ export function ImageSelectionOverlay({
           {resizeWidth} × {resizeHeight}
         </div>
       )}
+
+      {/* Drag ghost preview — React-portal at body level so it is always
+          cleaned up on unmount. Uses fixed positioning to track the cursor
+          regardless of scroll / zoom of the parent container. */}
+      {ghostRect &&
+        createPortal(
+          <div
+            style={{
+              position: 'fixed',
+              pointerEvents: 'none',
+              zIndex: 10000,
+              opacity: 0.5,
+              border: '2px dashed #2563eb',
+              borderRadius: '4px',
+              background: 'rgba(37, 99, 235, 0.1)',
+              left: ghostRect.left,
+              top: ghostRect.top,
+              width: ghostRect.width,
+              height: ghostRect.height,
+            }}
+          />,
+          document.body
+        )}
     </div>
   );
 }
