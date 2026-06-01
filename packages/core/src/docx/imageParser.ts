@@ -46,6 +46,7 @@ import {
 } from './xmlParser';
 import { resolveTarget } from './relsParser';
 import { isTextBoxDrawing } from './textBoxParser';
+import { isShapeDrawing } from './shapeParser';
 import { emuToPixels } from '../utils/units';
 import {
   parsePositionH,
@@ -665,6 +666,12 @@ export function parseDrawing(
 ): Image | null {
   // Skip text box shapes — they are handled by textBoxParser, not as images
   if (isTextBoxDrawing(drawingEl)) return null;
+
+  // Skip geometry/connector shapes (wps:wsp) — they are handled by
+  // shapeParser. Attempting to parse them as images yields an Image object
+  // with no `src`, which renders as a broken-image placeholder next to the
+  // real shape node.
+  if (isShapeDrawing(drawingEl)) return null;
 
   const children = getChildElements(drawingEl);
 
