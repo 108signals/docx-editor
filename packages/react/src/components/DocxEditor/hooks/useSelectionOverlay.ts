@@ -188,9 +188,14 @@ export function useSelectionOverlay(opts: UseSelectionOverlayOptions): UseSelect
   const handleSelectionChange = useCallback(
     (state: EditorState) => {
       const { selection } = state;
-      if (selection instanceof NodeSelection && selection.node.type.name === 'image') {
-        // Image NodeSelection suppresses text overlay so the image overlay is the
-        // only thing painted over the selection.
+      // Inline shapes are painted as SVG-image runs and share the image overlay:
+      // treat a NodeSelection on either an 'image' or a 'shape' node the same.
+      const isImageOrShapeNodeSel =
+        selection instanceof NodeSelection &&
+        (selection.node.type.name === 'image' || selection.node.type.name === 'shape');
+      if (isImageOrShapeNodeSel) {
+        // NodeSelection on an image/shape suppresses text overlay so the image
+        // overlay is the only thing painted over the selection.
         setSelectionRects([]);
         setCaretPosition(null);
       } else if (syncCoordinator.isSafeToRender()) {
@@ -208,7 +213,10 @@ export function useSelectionOverlay(opts: UseSelectionOverlayOptions): UseSelect
           return;
         }
         const { selection: sel } = view.state;
-        if (sel instanceof NodeSelection && sel.node.type.name === 'image') {
+        const isImageOrShape =
+          sel instanceof NodeSelection &&
+          (sel.node.type.name === 'image' || sel.node.type.name === 'shape');
+        if (isImageOrShape) {
           const pmPos = sel.from;
           const imgEl = pagesContainerRef.current
             ? findBodyPmAnchor(pagesContainerRef.current, pmPos)
