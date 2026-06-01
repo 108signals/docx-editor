@@ -819,7 +819,8 @@ export function usePagesPointer(opts: UsePagesPointerOptions): UsePagesPointerRe
       // the current selection in that case.
       const readImageNodeAt = (pos: number): ImageInfo | null => {
         const node = view.state.doc.nodeAt(pos);
-        if (!node || node.type.name !== 'image') return null;
+        // Shape nodes rendered as SVG images use the same context menu as images.
+        if (!node || (node.type.name !== 'image' && node.type.name !== 'shape')) return null;
         const wrapType = (node.attrs.wrapType as WrapType | undefined) ?? 'inline';
         const cssFloat = node.attrs.cssFloat as ImageInfo['cssFloat'];
         return { pos, wrapType, cssFloat };
@@ -835,7 +836,8 @@ export function usePagesPointer(opts: UsePagesPointerOptions): UsePagesPointerRe
       }
       if (!imageInfo) {
         const sel = view.state.selection;
-        if (sel instanceof NodeSelection && sel.node.type.name === 'image') {
+        if (sel instanceof NodeSelection &&
+            (sel.node.type.name === 'image' || sel.node.type.name === 'shape')) {
           imageInfo = readImageNodeAt(sel.from);
           if (imageInfo) {
             const inlineEl = pagesContainerRef.current?.querySelector(
