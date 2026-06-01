@@ -1,9 +1,10 @@
 /**
  * Run Conversion
  *
- * Converts ProseMirror inline content (text, tab, image, field, math, sdt,
- * hardBreak) into the layout engine's Run[] representation, with mark-driven
- * formatting (bold/italic/color/font/etc.) extracted from each child.
+ * Converts ProseMirror inline content (text, tab, image, shape, field, math,
+ * sdt, hardBreak) into the layout engine's Run[] representation, with
+ * mark-driven formatting (bold/italic/color/font/etc.) extracted from each
+ * child.
  */
 
 import type { Node as PMNode, Mark } from 'prosemirror-model';
@@ -25,6 +26,7 @@ import type {
 import type { Theme } from '../../types/document';
 import { resolveColor, resolveHighlightToCss } from '../../utils/colorResolver';
 import { halfPointsToPixels, halfPointsToPoints } from '../../utils/units';
+import { buildShapeSVGDataUri, type ShapeSvgAttrs } from '../../utils/shapeSvg';
 import { twipsToPixels, constrainImageToPage } from './shared';
 import type { ToFlowBlocksOptions } from './shared';
 
@@ -371,6 +373,33 @@ export function paragraphToRuns(
         cropBottom: attrs.cropBottom as number | undefined,
         cropLeft: attrs.cropLeft as number | undefined,
         opacity: attrs.opacity as number | undefined,
+        isInsertion: changeFmt.isInsertion,
+        isDeletion: changeFmt.isDeletion,
+        changeAuthor: changeFmt.changeAuthor,
+        changeDate: changeFmt.changeDate,
+        changeRevisionId: changeFmt.changeRevisionId,
+        pmStart: childPos,
+        pmEnd: childPos + child.nodeSize,
+      };
+      runs.push(run);
+    } else if (child.type.name === 'shape') {
+      // Inline shapes have no painter run kind of their own; render them as an
+      // inline SVG image so the paginated preview draws the geometry instead of
+      // dropping it. The editable view still uses the real `shape` node view.
+      const attrs = child.attrs as ShapeSvgAttrs & { width?: number; height?: number };
+      const constrained = constrainImageToPage(
+        (attrs.width as number) || 100,
+        (attrs.height as number) || 80,
+        _options.pageContentHeight
+      );
+      const changeFmt = extractRunFormatting(child.marks, theme);
+      const run: ImageRun = {
+        kind: 'image',
+        src: buildShapeSVGDataUri(attrs, constrained.width, constrained.height),
+        width: constrained.width,
+        height: constrained.height,
+        alt: attrs.shapeType ? `shape: ${attrs.shapeType}` : 'shape',
+        transform: (child.attrs.transform as string | undefined) ?? undefined,
         isInsertion: changeFmt.isInsertion,
         isDeletion: changeFmt.isDeletion,
         changeAuthor: changeFmt.changeAuthor,
