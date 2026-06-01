@@ -106,10 +106,15 @@ export function buildShapeSVGMarkup(attrs: ShapeSvgAttrs, w: number, h: number):
         ? ' stroke-dasharray="2 2"'
         : '';
 
+  // Expand the viewBox by half the stroke width on each side so the stroke is
+  // not clipped at the shape edges. The width/height attributes on the <svg>
+  // element stay the same (the img container defines the visible size).
+  const pad = strokeWidth / 2;
   const svgContent = getShapeSVG(attrs.shapeType || 'rect', w, h);
 
   return (
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" ` +
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" ` +
+    `viewBox="${-pad} ${-pad} ${w + strokeWidth} ${h + strokeWidth}" ` +
     `style="fill:${fill};stroke:${strokeColor};stroke-width:${strokeWidth}${strokeDash}">` +
     (svgDefs ? `<defs>${svgDefs}</defs>` : '') +
     svgContent +
