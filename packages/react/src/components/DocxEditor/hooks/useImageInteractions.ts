@@ -47,7 +47,7 @@ export function useImageInteractions(
       if (!view) return;
       try {
         const node = view.state.doc.nodeAt(pmPos);
-        if (!node || node.type.name !== 'image') return;
+        if (!node || (node.type.name !== 'image' && node.type.name !== 'shape')) return;
         const tr = view.state.tr.setNodeMarkup(pmPos, undefined, {
           ...node.attrs,
           width: newWidth,
@@ -76,7 +76,7 @@ export function useImageInteractions(
       if (!view) return;
       try {
         const node = view.state.doc.nodeAt(pmPos);
-        if (!node || node.type.name !== 'image') return;
+        if (!node || (node.type.name !== 'image' && node.type.name !== 'shape')) return;
 
         const isFloating =
           node.attrs.displayMode === 'float' ||

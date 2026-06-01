@@ -25,6 +25,7 @@ import type {
   TextFormatting,
 } from '../../../types/document';
 import { emuToPixels } from '../../../docx/imageParser';
+import { resolveColorValueToHex } from '../../../docx/drawingUtils';
 import { isWrapNone } from '../../../docx/wrapTypes';
 import { mergeTextFormatting } from '../../../utils/textFormattingMerge';
 import type { StyleResolver } from '../../styles';
@@ -458,19 +459,18 @@ function convertShape(shape: Shape): PMNode {
   let gradientStops: string | undefined;
   if (shape.fill) {
     fillType = shape.fill.type;
-    if (shape.fill.color?.rgb) {
-      fillColor = `#${shape.fill.color.rgb}`;
-    }
+    // Resolve both direct RGB and theme color references (a:schemeClr → accent1 etc.)
+    fillColor = resolveColorValueToHex(shape.fill.color);
     // Extract gradient data
     if (shape.fill.type === 'gradient' && shape.fill.gradient) {
       const g = shape.fill.gradient;
       gradientType = g.type;
       gradientAngle = g.angle;
-      // Convert stops to serializable format with CSS colors
+      // Convert stops to serializable format with CSS colors; resolve theme colors
       gradientStops = JSON.stringify(
         g.stops.map((s) => ({
           position: s.position,
-          color: s.color.rgb ? `#${s.color.rgb}` : '#000000',
+          color: resolveColorValueToHex(s.color) ?? '#000000',
         }))
       );
     }
@@ -483,9 +483,8 @@ function convertShape(shape: Shape): PMNode {
     if (shape.outline.width) {
       outlineWidth = Math.round((shape.outline.width / 914400) * 96 * 100) / 100;
     }
-    if (shape.outline.color?.rgb) {
-      outlineColor = `#${shape.outline.color.rgb}`;
-    }
+    // Resolve both direct RGB and theme color references
+    outlineColor = resolveColorValueToHex(shape.outline.color);
     outlineStyle = shape.outline.style || 'solid';
   }
 
