@@ -25,7 +25,10 @@ export interface ShapeSvgAttrs {
  * Build points string for a regular polygon centered in (w, h).
  */
 function regularPolygon(n: number, w: number, h: number, startAngle = -Math.PI / 2): string {
-  const cx = w / 2, cy = h / 2, rx = w / 2, ry = h / 2;
+  const cx = w / 2,
+    cy = h / 2,
+    rx = w / 2,
+    ry = h / 2;
   const pts: string[] = [];
   for (let i = 0; i < n; i++) {
     const a = startAngle + (2 * Math.PI * i) / n;
@@ -38,15 +41,21 @@ function regularPolygon(n: number, w: number, h: number, startAngle = -Math.PI /
  * Build an n-point star.  outerFrac is the inner-radius fraction of the outer radius.
  */
 function starPolygon(n: number, outerFrac: number, w: number, h: number): string {
-  const cx = w / 2, cy = h / 2, rx = w / 2, ry = h / 2;
-  const rix = rx * outerFrac, riy = ry * outerFrac;
+  const cx = w / 2,
+    cy = h / 2,
+    rx = w / 2,
+    ry = h / 2;
+  const rix = rx * outerFrac,
+    riy = ry * outerFrac;
   const total = n * 2;
   const pts: string[] = [];
   const start = -Math.PI / 2;
   for (let i = 0; i < total; i++) {
     const a = start + (Math.PI * i) / n;
     const isOuter = i % 2 === 0;
-    pts.push(`${(cx + (isOuter ? rx : rix) * Math.cos(a)).toFixed(2)},${(cy + (isOuter ? ry : riy) * Math.sin(a)).toFixed(2)}`);
+    pts.push(
+      `${(cx + (isOuter ? rx : rix) * Math.cos(a)).toFixed(2)},${(cy + (isOuter ? ry : riy) * Math.sin(a)).toFixed(2)}`
+    );
   }
   return `<polygon points="${pts.join(' ')}" />`;
 }
@@ -57,13 +66,17 @@ function starPolygon(n: number, outerFrac: number, w: number, h: number): string
  * headFrac: width fraction for the arrowhead (0.35 = 35% of width)
  */
 function rightArrowPath(w: number, h: number, shaftFrac = 0.4, headFrac = 0.35): string {
-  const s = h * shaftFrac / 2; // half shaft height
+  const s = (h * shaftFrac) / 2; // half shaft height
   const hx = w * (1 - headFrac); // x where head starts
   const my = h / 2;
   const pts = [
-    `0,${my - s}`, `${hx},${my - s}`, `${hx},0`,
+    `0,${my - s}`,
+    `${hx},${my - s}`,
+    `${hx},0`,
     `${w},${my}`,
-    `${hx},${h}`, `${hx},${my + s}`, `0,${my + s}`,
+    `${hx},${h}`,
+    `${hx},${my + s}`,
+    `0,${my + s}`,
   ].join(' ');
   return `<polygon points="${pts}" />`;
 }
@@ -136,11 +149,11 @@ export function getShapeSVG(type: string, w: number, h: number): string {
     case 'star12':
       return starPolygon(12, 0.45, w, h);
     case 'star16':
-      return starPolygon(16, 0.50, w, h);
+      return starPolygon(16, 0.5, w, h);
     case 'star24':
       return starPolygon(24, 0.55, w, h);
     case 'star32':
-      return starPolygon(32, 0.60, w, h);
+      return starPolygon(32, 0.6, w, h);
 
     // ── Lines / Connectors ────────────────────────────────────────────────
     case 'line':
@@ -174,26 +187,38 @@ export function getShapeSVG(type: string, w: number, h: number): string {
     }
     case 'leftRightArrow': {
       // Two arrowheads facing left and right
-      const s = h * 0.4 / 2;
+      const s = (h * 0.4) / 2;
       const hx = w * 0.35;
       const my = h / 2;
       const pts = [
-        `0,${my}`, `${hx},0`, `${hx},${my - s}`,
-        `${w - hx},${my - s}`, `${w - hx},0`, `${w},${my}`,
-        `${w - hx},${h}`, `${w - hx},${my + s}`,
-        `${hx},${my + s}`, `${hx},${h}`,
+        `0,${my}`,
+        `${hx},0`,
+        `${hx},${my - s}`,
+        `${w - hx},${my - s}`,
+        `${w - hx},0`,
+        `${w},${my}`,
+        `${w - hx},${h}`,
+        `${w - hx},${my + s}`,
+        `${hx},${my + s}`,
+        `${hx},${h}`,
       ].join(' ');
       return `<polygon points="${pts}" />`;
     }
     case 'upDownArrow': {
-      const s = w * 0.4 / 2;
+      const s = (w * 0.4) / 2;
       const hy = h * 0.35;
       const mx = w / 2;
       const pts = [
-        `${mx},0`, `${w},${hy}`, `${mx + s},${hy}`,
-        `${mx + s},${h - hy}`, `${w},${h - hy}`, `${mx},${h}`,
-        `0,${h - hy}`, `${mx - s},${h - hy}`,
-        `${mx - s},${hy}`, `0,${hy}`,
+        `${mx},0`,
+        `${w},${hy}`,
+        `${mx + s},${hy}`,
+        `${mx + s},${h - hy}`,
+        `${w},${h - hy}`,
+        `${mx},${h}`,
+        `0,${h - hy}`,
+        `${mx - s},${h - hy}`,
+        `${mx - s},${hy}`,
+        `0,${hy}`,
       ].join(' ');
       return `<polygon points="${pts}" />`;
     }
@@ -261,7 +286,8 @@ export function getShapeSVG(type: string, w: number, h: number): string {
     case 'flowChartSummingJunction':
     case 'flowChartOr': {
       const r = Math.min(w, h) / 2;
-      const cx2 = w / 2, cy2 = h / 2;
+      const cx2 = w / 2,
+        cy2 = h / 2;
       return `<g>
         <ellipse cx="${cx2}" cy="${cy2}" rx="${r}" ry="${r}" />
         <line x1="${cx2}" y1="${cy2 - r}" x2="${cx2}" y2="${cy2 + r}" />
@@ -303,7 +329,8 @@ export function getShapeSVG(type: string, w: number, h: number): string {
     case 'plus':
     case 'mathPlus': {
       const t = Math.min(w, h) * 0.3;
-      const mx = (w - t) / 2, my = (h - t) / 2;
+      const mx = (w - t) / 2,
+        my = (h - t) / 2;
       return `<polygon points="${mx},0 ${mx + t},0 ${mx + t},${my} ${w},${my} ${w},${my + t} ${mx + t},${my + t} ${mx + t},${h} ${mx},${h} ${mx},${my + t} 0,${my + t} 0,${my} ${mx},${my}" />`;
     }
 
@@ -313,7 +340,6 @@ export function getShapeSVG(type: string, w: number, h: number): string {
       return `<rect x="0" y="0" width="${w}" height="${h}" />`;
   }
 }
-
 
 /**
  * Build SVG gradient <defs> content from shape attrs.

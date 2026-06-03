@@ -298,25 +298,25 @@ function convertImage(image: Image): PMNode {
   // Build position data for floating images
   let position:
     | {
-      horizontal?: { relativeTo?: string; posOffset?: number; align?: string };
-      vertical?: { relativeTo?: string; posOffset?: number; align?: string };
-    }
+        horizontal?: { relativeTo?: string; posOffset?: number; align?: string };
+        vertical?: { relativeTo?: string; posOffset?: number; align?: string };
+      }
     | undefined;
   if (image.position) {
     position = {
       horizontal: image.position.horizontal
         ? {
-          relativeTo: image.position.horizontal.relativeTo,
-          posOffset: image.position.horizontal.posOffset,
-          align: image.position.horizontal.alignment,
-        }
+            relativeTo: image.position.horizontal.relativeTo,
+            posOffset: image.position.horizontal.posOffset,
+            align: image.position.horizontal.alignment,
+          }
         : undefined,
       vertical: image.position.vertical
         ? {
-          relativeTo: image.position.vertical.relativeTo,
-          posOffset: image.position.vertical.posOffset,
-          align: image.position.vertical.alignment,
-        }
+            relativeTo: image.position.vertical.relativeTo,
+            posOffset: image.position.vertical.posOffset,
+            align: image.position.vertical.alignment,
+          }
         : undefined,
     };
   }

@@ -61,7 +61,9 @@ export function findBodyPmAnchor(container: ParentNode, pmStart: number): HTMLEl
   if (!Number.isFinite(pmStart)) return null;
   return (
     container.querySelector<HTMLElement>(`${BODY_SCOPE} [data-pm-start="${pmStart}"]`) ??
-    container.querySelector<HTMLElement>(`.layout-page-floating-image [data-pm-start="${pmStart}"]`) ??
+    container.querySelector<HTMLElement>(
+      `.layout-page-floating-image [data-pm-start="${pmStart}"]`
+    ) ??
     container.querySelector<HTMLElement>(`.layout-cell-floating-image [data-pm-start="${pmStart}"]`)
   );
 }
