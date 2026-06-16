@@ -13,10 +13,53 @@
  */
 import type { Shape, ShapeFill, ShapeOutline, ShapeType } from '../types/content/shape';
 import type { ShapeContent } from '../types/content/run';
+import type { BorderSpec } from '../types/colors';
 import { getAttribute, getChildElements, findAllDeep, type XmlElement } from './xmlParser';
 import { isWatermarkShape, parseStyleAttr } from './vmlWatermarkParser';
 
 const EMU_PER_PT = 12700;
+
+/**
+ * Detect Word's "Horizontal Line" (Insert > Horizontal Line) and return the
+ * paragraph bottom-border that represents it, or null.
+ *
+ * It is a stroke-only thin `<v:rect>` carrying the auto full-width marker
+ * `mso-left-percent:-10001` (the rule always spans the full column width — the
+ * literal `width:468pt` is just Word's snapshot at insert time). Modelling it
+ * as a fixed-width shape renders a too-narrow rule on any document whose column
+ * width differs from the snapshot; a paragraph bottom border is always full
+ * column width and scales with zoom (#811).
+ */
+export function parseVmlAutoRuleBorder(pictElement: XmlElement): BorderSpec | null {
+  for (const el of findAllDeep(pictElement, 'v', 'rect')) {
+    const hasImageData = getChildElements(el).some(
+      (c) => c.name === 'v:imagedata' || c.name?.endsWith(':imagedata')
+    );
+    if (hasImageData) continue;
+
+    const style = parseStyleAttr(getAttribute(el, null, 'style'));
+    // The auto full-width horizontal-rule marker.
+    if (!('mso-left-percent' in style)) continue;
+    const heightEmu = vmlLengthToEmu(style['height']);
+    // A rule is a hairline; a genuinely tall positioned rect is a real shape.
+    if (heightEmu != null && heightEmu > 3 * EMU_PER_PT) continue;
+
+    const strokeRgb = vmlColorToRgb(getAttribute(el, null, 'strokecolor'));
+    const weightEmu = vmlLengthToEmu(getAttribute(el, null, 'strokeweight'));
+    // Border size is in eighths of a point; VML default stroke is 0.75pt.
+    const sizeEighths = Math.max(
+      2,
+      Math.round(((weightEmu ?? Math.round(0.75 * EMU_PER_PT)) / EMU_PER_PT) * 8)
+    );
+    return {
+      style: 'single',
+      size: sizeEighths,
+      color: strokeRgb ? { rgb: strokeRgb } : { auto: true },
+      space: 1,
+    };
+  }
+  return null;
+}
 
 /** Parse a CSS-ish VML length (`468pt`, `.05pt`, `12px`) to EMUs. */
 function vmlLengthToEmu(value: string | null | undefined): number | null {
@@ -94,6 +137,12 @@ export function parseVmlShapeContent(pictElement: XmlElement): ShapeContent | nu
       if (isWatermarkShape(el, idLower)) continue;
 
       const style = parseStyleAttr(getAttribute(el, null, 'style'));
+      // Word's auto full-width "Horizontal Line" is handled as a paragraph
+      // bottom border (full column width), not a fixed-width shape (#811).
+      if (tag === 'rect' && 'mso-left-percent' in style) {
+        const hEmu = vmlLengthToEmu(style['height']);
+        if (hEmu == null || hEmu <= 3 * EMU_PER_PT) continue;
+      }
       const widthEmu = vmlLengthToEmu(style['width']);
       const heightEmu = vmlLengthToEmu(style['height']);
       if (widthEmu == null || widthEmu <= 0) continue;

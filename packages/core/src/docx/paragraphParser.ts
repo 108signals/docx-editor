@@ -24,7 +24,8 @@ import type {
 } from '../types/document';
 import type { StyleMap } from './styleParser';
 import { computeListRendering, type NumberingMap } from './numberingParser';
-import { findChild, getAttribute, type XmlElement } from './xmlParser';
+import { findChild, findAllDeep, getAttribute, type XmlElement } from './xmlParser';
+import { parseVmlAutoRuleBorder } from './vmlShapeParser';
 import { parseSectionProperties } from './sectionParser';
 import { consolidateParagraphContent } from './runConsolidator';
 
@@ -150,6 +151,20 @@ export function parseParagraph(
   // Consolidate consecutive runs with identical formatting
   // This reduces fragmentation (e.g., 252 tiny runs → a few larger runs)
   paragraph.content = consolidateParagraphContent(rawContent);
+
+  // Word's "Horizontal Line" (a full-width auto VML rule) is represented as a
+  // paragraph bottom border so it spans the full column width and scales with
+  // zoom, rather than a fixed-width shape (#811). The rule's `<w:pict>` emits
+  // no run content (parseVmlShapeContent skips it), so only the border remains.
+  for (const pict of findAllDeep(node, 'w', 'pict')) {
+    const ruleBorder = parseVmlAutoRuleBorder(pict);
+    if (ruleBorder) {
+      if (!paragraph.formatting) paragraph.formatting = {};
+      if (!paragraph.formatting.borders) paragraph.formatting.borders = {};
+      paragraph.formatting.borders.bottom = ruleBorder;
+      break;
+    }
+  }
 
   // Compute list rendering if this is a list item.
   // numPr can come from inline pPr or from the referenced paragraph style.

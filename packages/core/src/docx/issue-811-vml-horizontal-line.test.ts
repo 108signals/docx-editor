@@ -12,7 +12,7 @@
 
 import { describe, expect, test } from 'bun:test';
 import { parseXml, findAllDeep, type XmlElement } from './xmlParser';
-import { parseVmlShapeContent } from './vmlShapeParser';
+import { parseVmlShapeContent, parseVmlAutoRuleBorder } from './vmlShapeParser';
 
 const NS =
   'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" ' +
@@ -43,20 +43,16 @@ function pictOf(xml: string): XmlElement {
 }
 
 describe('issue #811 — VML drawn shapes', () => {
-  test('Word "Horizontal Line" v:rect becomes a full-width line shape', () => {
-    const content = parseVmlShapeContent(pictOf(HORIZONTAL_LINE));
-    expect(content).not.toBeNull();
-    expect(content!.type).toBe('shape');
-    const shape = content!.shape;
-    // Hairline, filled="f" rect → rendered as a `line` so the SVG draws a rule.
-    expect(shape.shapeType).toBe('line');
-    // 468pt = 468 * 12700 EMU.
-    expect(shape.size.width).toBe(468 * 12700);
-    // No fill (filled="f"), default black stroke.
-    expect(shape.fill?.type ?? 'none').toBe('none');
-    expect(shape.outline?.color?.rgb).toBe('000000');
-    // Non-zero box height so the SVG viewport renders the stroke.
-    expect(shape.size.height).toBeGreaterThan(0);
+  test('Word "Horizontal Line" auto rule becomes a full-width bottom border', () => {
+    // The auto full-width rule (mso-left-percent:-10001) maps to a paragraph
+    // bottom border so it spans the full column width at any page size / zoom,
+    // rather than a fixed-width shape snapshot.
+    const border = parseVmlAutoRuleBorder(pictOf(HORIZONTAL_LINE));
+    expect(border).not.toBeNull();
+    expect(border!.style).toBe('single');
+    expect(border!.size).toBeGreaterThan(0);
+    // It is NOT emitted as a fixed-width shape (that would be too narrow).
+    expect(parseVmlShapeContent(pictOf(HORIZONTAL_LINE))).toBeNull();
   });
 
   test('a filled, stroked box rect keeps rect type, fill and stroke', () => {
