@@ -18,6 +18,8 @@ import type {
   RunContent,
   Hyperlink,
   Image,
+  ImageWrap,
+  ImagePosition,
   Shape,
   SimpleField,
   ComplexField,
@@ -187,6 +189,66 @@ function convertRunContent(content: RunContent, marks: ReturnType<typeof schema.
     default:
       return [];
   }
+}
+
+/**
+ * Map a drawing's wrap + anchor position to the layout attrs the painter reads
+ * (`wrapType`, `cssFloat`, `displayMode`, `position`). Shared by images and
+ * shapes so an anchored shape (an `inFront` title box, a `topAndBottom` band)
+ * is positioned out of flow exactly like an anchored image instead of rendering
+ * inline and overlapping the body text (issue #813).
+ */
+function wrapToLayoutAttrs(
+  wrap: ImageWrap | undefined,
+  pos: ImagePosition | undefined
+): {
+  wrapType: string;
+  cssFloat: 'left' | 'right' | 'none';
+  displayMode: 'inline' | 'block' | 'float';
+  position: {
+    horizontal?: { relativeTo?: string; posOffset?: number; align?: string };
+    vertical?: { relativeTo?: string; posOffset?: number; align?: string };
+  } | null;
+} {
+  const wrapType = wrap?.type ?? 'inline';
+  const wrapText = wrap?.wrapText;
+  const hAlign = pos?.horizontal?.alignment;
+
+  let cssFloat: 'left' | 'right' | 'none' = 'none';
+  if (wrapType === 'square' || wrapType === 'tight' || wrapType === 'through') {
+    if (wrapText === 'left') cssFloat = 'right';
+    else if (wrapText === 'right') cssFloat = 'left';
+    else if (hAlign === 'left') cssFloat = 'left';
+    else if (hAlign === 'right') cssFloat = 'right';
+  }
+
+  let displayMode: 'inline' | 'block' | 'float' = 'inline';
+  if (wrapType === 'inline') displayMode = 'inline';
+  else if (wrapType === 'topAndBottom') displayMode = 'block';
+  else if (isWrapNone(wrapType)) displayMode = 'float';
+  else if (cssFloat !== 'none') displayMode = 'float';
+  else displayMode = 'block';
+
+  const position = pos
+    ? {
+        horizontal: pos.horizontal
+          ? {
+              relativeTo: pos.horizontal.relativeTo,
+              posOffset: pos.horizontal.posOffset,
+              align: pos.horizontal.alignment,
+            }
+          : undefined,
+        vertical: pos.vertical
+          ? {
+              relativeTo: pos.vertical.relativeTo,
+              posOffset: pos.vertical.posOffset,
+              align: pos.vertical.alignment,
+            }
+          : undefined,
+      }
+    : null;
+
+  return { wrapType, cssFloat, displayMode, position };
 }
 
 /**
@@ -510,6 +572,12 @@ function convertShape(shape: Shape): PMNode {
     }
   }
 
+  // Anchored shapes (inFront title boxes, topAndBottom bands) must be
+  // positioned out of flow like anchored images — otherwise they render inline
+  // and overlap the body text (#813). Inline shapes (e.g. the #811 horizontal
+  // rule) keep displayMode 'inline'.
+  const layout = wrapToLayoutAttrs(shape.wrap, shape.position);
+
   return schema.node('shape', {
     shapeType: shape.shapeType || 'rect',
     shapeId: shape.id,
@@ -524,5 +592,9 @@ function convertShape(shape: Shape): PMNode {
     outlineColor,
     outlineStyle,
     transform,
+    wrapType: layout.wrapType,
+    cssFloat: layout.cssFloat === 'none' ? null : layout.cssFloat,
+    displayMode: layout.displayMode,
+    position: layout.position,
   });
 }
