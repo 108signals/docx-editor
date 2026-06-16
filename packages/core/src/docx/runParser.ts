@@ -57,6 +57,7 @@ import {
 import { resolveThemeFontRef } from './themeParser';
 import { parseImage } from './imageParser';
 import { parseVmlImageContent } from './vmlImageParser';
+import { parseVmlShapeContent } from './vmlShapeParser';
 
 /**
  * Parse color value from attributes
@@ -647,11 +648,16 @@ function parseRunContents(
       case 'object': {
         // Legacy VML pictures (e.g. header logos): <w:pict><v:shape>
         // <v:imagedata r:id/></v:shape></w:pict>. Watermark shapes are left to
-        // extractWatermark. Non-image VML (text watermarks, drawn shapes) is
-        // still ignored here.
+        // extractWatermark.
         const vmlImage = parseVmlImageContent(child, rels, media);
         if (vmlImage) {
           contents.push(vmlImage);
+        } else {
+          // Drawn (non-image) VML shapes — e.g. Word's "Horizontal Line"
+          // (stroke-only v:rect). Previously dropped; now parsed into a Shape
+          // so the geometry pipeline renders it (issue #811).
+          const vmlShape = parseVmlShapeContent(child);
+          if (vmlShape) contents.push(vmlShape);
         }
         break;
       }
