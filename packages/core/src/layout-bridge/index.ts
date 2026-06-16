@@ -18,12 +18,19 @@ export {
 } from './toFlowBlocks';
 export type { ToFlowBlocksOptions } from './toFlowBlocks';
 
-// Table-width helpers used by both the React paged editor and the layout bridge.
+// Table grid + width helpers used by the measurer, painter, and paginator.
 export {
   resolveTableWidthPx,
   countTableColumns,
   normalizeTableColumnWidths,
+  resolveCellGrid,
+  resolveTableColumnWidths,
+  resolveTableTotalWidthPx,
 } from './tableWidthUtils';
+export type { ResolvedGridCell } from './tableWidthUtils';
+
+// Floating-table classification (demote full-width floats to inline).
+export { isBlockLikeFloatingTable, demoteBlockLikeFloatingTables } from './floatingTable';
 
 // Measurement (text + paragraph + caches)
 export * from './measuring';
@@ -59,10 +66,12 @@ export type { PositionResult } from './clickToPosition';
 export {
   clickToPositionDom as mouseToPosition,
   clickToPositionDom,
+  clipRectToTableWindow,
   getSelectionRectsFromDom,
   getCaretPositionFromDom,
 } from './clickToPositionDom';
 export type { DomSelectionRect, DomCaretPosition } from './clickToPositionDom';
+export { applyCellSelectionHighlight } from './cellSelectionHighlight';
 
 // Selection rectangles
 export {
@@ -104,6 +113,7 @@ export {
   normalizeHeaderFooterMeasureBlocks,
   resolveHeaderFooterVisualTop,
   calculateHeaderFooterVisualBounds,
+  contributesToHeaderFooterFlowHeight,
   convertHeaderFooterToContent,
   convertHeaderFooterPmDocToContent,
   computeHfCaretRectFromView,
@@ -111,6 +121,14 @@ export {
   invalidateHfDomCache,
 } from './headerFooterLayout';
 export type { HeaderFooterMetrics, ConvertHeaderFooterOptions } from './headerFooterLayout';
+
+// Body-margin extension for header/footer band growth. Shared so React + Vue
+// pipelines stay in lockstep (issue #705 / #696).
+export { extendMarginsForHeaderFooter } from './headerFooterMargins';
+export type {
+  ExtendMarginsForHeaderFooterInput,
+  ExtendMarginsForHeaderFooterResult,
+} from './headerFooterMargins';
 
 // Table-insert hover hit-test — pure DOM logic shared across adapters.
 export {
@@ -138,6 +156,10 @@ export {
   getPageSize,
   getMargins,
   resolveHeaderFooter,
+  getColumns,
+  columnWidthForSection,
+  computePerBlockWidths,
+  twipsToPixels,
   DEFAULT_PAGE_WIDTH_PX,
   DEFAULT_PAGE_HEIGHT_PX,
   DEFAULT_BODY_MARGIN_PX,

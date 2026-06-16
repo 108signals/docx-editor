@@ -43,6 +43,7 @@ import {
   TextOutlineExtension,
 } from './marks/TextEffectsExtensions';
 import { HiddenExtension, RtlExtension, TextEffectExtension } from './marks/HiddenTextExtensions';
+import { RunStyleExtension } from './marks/RunStyleExtension';
 
 // Nodes
 import { HardBreakExtension } from './nodes/HardBreakExtension';
@@ -54,12 +55,14 @@ import { HorizontalRuleExtension } from './nodes/HorizontalRuleExtension';
 import { PageBreakExtension } from './nodes/PageBreakExtension';
 import { FieldExtension } from './nodes/FieldExtension';
 import { SdtExtension } from './nodes/SdtExtension';
+import { BlockSdtExtension } from './nodes/BlockSdtExtension';
 import { MathExtension } from './nodes/MathExtension';
 import { createTableExtensions } from './nodes/TableExtension';
 
 // Features
 import { ListExtension } from './features/ListExtension';
 import { BaseKeymapExtension } from './features/BaseKeymapExtension';
+import { EmptyParagraphFormatExtension } from './features/EmptyParagraphFormatExtension';
 import { SelectionTrackerExtension } from './features/SelectionTrackerExtension';
 import { ImageDragExtension } from './features/ImageDragExtension';
 import { ImagePasteExtension } from './features/ImagePasteExtension';
@@ -129,6 +132,7 @@ export function createStarterKit(options: StarterKitOptions = {}): AnyExtension[
   add('textOutline', TextOutlineExtension());
   add('hidden', HiddenExtension());
   add('rtl', RtlExtension());
+  add('runStyle', RunStyleExtension());
   add('textEffect', TextEffectExtension());
   add('comment', CommentExtension());
   add('insertion', InsertionExtension());
@@ -147,6 +151,7 @@ export function createStarterKit(options: StarterKitOptions = {}): AnyExtension[
   add('pageBreak', PageBreakExtension());
   add('field', FieldExtension());
   add('sdt', SdtExtension());
+  add('blockSdt', BlockSdtExtension());
   add('math', MathExtension());
 
   // Table (5 extensions grouped)
@@ -158,6 +163,7 @@ export function createStarterKit(options: StarterKitOptions = {}): AnyExtension[
   add('pasteStyleInliner', PasteStyleInlinerExtension());
   add('list', ListExtension());
   add('baseKeymap', BaseKeymapExtension());
+  add('emptyParagraphFormat', EmptyParagraphFormatExtension());
   add(
     'selectionTracker',
     SelectionTrackerExtension({

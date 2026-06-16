@@ -33,6 +33,7 @@ import type {
 import {
   renderPage,
   renderPages,
+  renderAllPagesNow,
   type RenderContext,
   type RenderPagesUpdateKind,
 } from './renderPage';
@@ -47,6 +48,7 @@ import { renderTextBoxFragment, TEXTBOX_CLASS_NAMES } from './renderTextBox';
 export {
   renderPage,
   renderPages,
+  renderAllPagesNow,
   renderParagraphFragment,
   renderTableFragment,
   renderImageFragment,
@@ -64,6 +66,19 @@ export {
 };
 export type { RenderPagesUpdateKind };
 export type { HeaderFooterContent, RenderPageOptions, FootnoteRenderItem } from './renderPage';
+
+// Anchored-object position resolution — shared with the measure pipeline so the
+// reserved float band lines up with where the painter places the object.
+export {
+  resolveAnchoredObjectPosition,
+  resolveAnchoredObjectVerticalTop,
+  pageGeometryFromPage,
+  type PageGeometry,
+} from './anchoredObjectPosition';
+
+// Block-level content-control (SDT) focus chrome — keep the boundary box and
+// label visible while the caret is inside the control, shared by both adapters.
+export { enclosingSdtGroupIds, applySdtFocus } from './sdtBoundary';
 
 // Framework-agnostic image layout helpers shared by React + Vue adapters.
 export {
@@ -91,6 +106,22 @@ export interface BlockLookupEntry {
  * Block lookup map type
  */
 export type BlockLookup = Map<string, BlockLookupEntry>;
+
+/**
+ * Build the painter's `block.id → { block, measure }` lookup from the parallel
+ * blocks/measures arrays. Shared by both adapters' paint step.
+ */
+export function buildBlockLookup(blocks: FlowBlock[], measures: Measure[]): BlockLookup {
+  const lookup: BlockLookup = new Map();
+  for (let i = 0; i < blocks.length; i++) {
+    const block = blocks[i];
+    const measure = measures[i];
+    if (block && measure) {
+      lookup.set(String(block.id), { block, measure });
+    }
+  }
+  return lookup;
+}
 
 /**
  * Painter options
@@ -228,7 +259,10 @@ export class LayoutPainter {
     pageEl.style.position = 'relative';
     pageEl.style.width = `${page.size.w}px`;
     pageEl.style.height = `${page.size.h}px`;
-    pageEl.style.backgroundColor = this.options.pageBackground ?? '#ffffff';
+    // CSS vars so .ep-root.dark re-themes the canvas (view transform only —
+    // saved DOCX unchanged). Mirrors applyPageStyles in renderPage.ts.
+    pageEl.style.backgroundColor = this.options.pageBackground ?? 'var(--doc-page-bg, #ffffff)';
+    pageEl.style.color = 'var(--doc-page-text, #000000)';
     pageEl.style.overflow = 'hidden';
 
     if (this.options.showShadow) {

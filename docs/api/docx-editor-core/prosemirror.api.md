@@ -21,6 +21,9 @@ export function addColumnLeft(state: EditorState, dispatch?: (tr: Transaction) =
 // @public (undocumented)
 export function addColumnRight(state: EditorState, dispatch?: (tr: Transaction) => void): boolean;
 
+// @public
+export function addRepeatingSectionItemTr(state: EditorState, itemPos: number): Transaction;
+
 // @public (undocumented)
 export function addRowAbove(state: EditorState, dispatch?: (tr: Transaction) => void): boolean;
 
@@ -78,6 +81,9 @@ export const clearStyle: Command;
 export const clearTextColor: Command;
 
 // @public
+export function createDocumentStylesPlugin(styles: StyleDefinitions | StyleResolver | null | undefined): Plugin_2;
+
+// @public
 export function createEmptyDoc(): Node_2;
 
 // @public
@@ -105,10 +111,22 @@ export function deleteTable(state: EditorState, dispatch?: (tr: Transaction) => 
 export function distributeColumns(): (state: EditorState, dispatch?: (tr: Transaction) => void) => boolean;
 
 // @public
+export const documentStylesKey: PluginKey<StyleResolver | null>;
+
+// @public
+export function ensureParaIdsInState(state: EditorState): EditorState;
+
+// @public
 export function extractSelectionContext(state: EditorState): SelectionContext;
 
 // @public
 export function extractSelectionState(state: EditorState): SelectionState | null;
+
+// @public
+export function findContentControlPos(doc: Node_2, filter: ContentControlFilter): number | null;
+
+// @public
+export function findContentControlsInPM(doc: Node_2, filter?: ContentControlFilter): PMContentControl[];
 
 // @public
 export function findHyperlinkRangeAt(state: EditorState, fallbackHref?: string): {
@@ -154,7 +172,7 @@ export interface FontSizeAttrs {
 }
 
 // @public
-export function footnoteToProseDoc(content: Array<Paragraph | Table>, options?: ToProseDocOptions & {
+export function footnoteToProseDoc(content: BlockContent[], options?: ToProseDocOptions & {
     theme?: Theme | null;
 }): Node_2;
 
@@ -163,6 +181,9 @@ export function fromProseDoc(pmDoc: Node_2, baseDocument?: Document_2): Document
 
 // @public (undocumented)
 export const generateTOC: Command;
+
+// @public
+export function getDocumentStyleResolver(state: EditorState): StyleResolver | null;
 
 // @public (undocumented)
 export function getHyperlinkAttrs(state: EditorState): {
@@ -198,7 +219,7 @@ export function getStyleId(state: EditorState): string | null;
 export function getTableContext(state: EditorState): TableContextInfo;
 
 // @public
-export function headerFooterToProseDoc(content: Array<Paragraph | Table>, options?: ToProseDocOptions & {
+export function headerFooterToProseDoc(content: BlockContent[], options?: ToProseDocOptions & {
     theme?: Theme | null;
 }): Node_2;
 
@@ -362,6 +383,10 @@ export interface ParagraphAttrs {
         numId?: number;
         ilvl?: number;
     };
+    numPrFromStyle?: {
+        numId?: number;
+        ilvl?: number;
+    };
     _originalFormatting?: ParagraphFormatting;
     // (undocumented)
     outlineLevel?: number;
@@ -391,11 +416,46 @@ export interface ParagraphAttrs {
     textId?: string;
 }
 
+// @public
+export interface PMContentControl {
+    // (undocumented)
+    alias?: string;
+    checked?: boolean;
+    dataBinding?: SdtDataBinding;
+    dateFormat?: string;
+    dateValue?: string;
+    depth: number;
+    // (undocumented)
+    id?: number;
+    listItems?: {
+        displayText: string;
+        value: string;
+    }[];
+    // (undocumented)
+    lock?: SdtProperties['lock'];
+    pos: number;
+    // (undocumented)
+    sdtType: SdtType;
+    showingPlaceholder?: boolean;
+    // (undocumented)
+    tag?: string;
+    text: string;
+}
+
+// @public
+export function removeContentControlTr(state: EditorState, filter: ContentControlFilter, options?: {
+    force?: boolean;
+    keepContent?: boolean;
+}): Transaction;
+
 // @public (undocumented)
 export const removeHyperlink: Command;
 
 // @public (undocumented)
 export const removeList: Command;
+
+// @public
+export function removeRepeatingSectionItemTr(state: EditorState, itemPos: number): Transaction;
 
 // @public (undocumented)
 export function removeTableBorders(state: EditorState, dispatch?: (tr: Transaction) => void): boolean;
@@ -492,6 +552,21 @@ export function setCellTextDirection(direction: string | null): (state: EditorSt
 // @public (undocumented)
 export function setCellVerticalAlign(align: 'top' | 'center' | 'bottom'): (state: EditorState, dispatch?: (tr: Transaction) => void) => boolean;
 
+// @public
+export function setContentControlContentTr(state: EditorState, filter: ContentControlFilter, text: string, options?: {
+    force?: boolean;
+}): Transaction;
+
+// @public
+export function setContentControlValueAtPosTr(state: EditorState, pos: number, value: ContentControlValue, options?: {
+    force?: boolean;
+}): Transaction;
+
+// @public
+export function setContentControlValueTr(state: EditorState, filter: ContentControlFilter, value: ContentControlValue, options?: {
+    force?: boolean;
+}): Transaction;
+
 // @public (undocumented)
 export function setFontFamily(fontName: string): Command;
 
@@ -578,6 +653,7 @@ export class StyleResolver {
     getDefaultParagraphStyle(): Style | undefined;
     getDefaultTableStyle(): Style | undefined;
     getDocDefaults(): DocDefaults | undefined;
+    getNextStyleId(styleId: string | undefined | null): string | null;
     getParagraphStyles(): Style[];
     getRunStyleOwnProperties(styleId: string | undefined | null): TextFormatting | undefined;
     getStyle(styleId: string): Style | undefined;

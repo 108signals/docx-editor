@@ -95,6 +95,78 @@
       "id": 25336795,
       "signed_at": "2026-05-31T02:44:57Z",
       "pull_request_no": 646
+    },
+    {
+      "name": "Yanuy",
+      "id": 133895436,
+      "signed_at": "2026-06-01T04:58:30Z",
+      "pull_request_no": 656
+    },
+    {
+      "name": "m-aizaz-official",
+      "id": 226320597,
+      "signed_at": "2026-06-01T05:31:12Z",
+      "pull_request_no": 650
+    },
+    {
+      "name": "xy200303",
+      "id": 130276203,
+      "signed_at": "2026-06-01T15:32:35Z",
+      "pull_request_no": 660
+    },
+    {
+      "name": "ayobamiseun",
+      "id": 66267222,
+      "signed_at": "2026-06-02T12:31:08Z",
+      "pull_request_no": 667
+    },
+    {
+      "name": "MrTownsend",
+      "id": 245037279,
+      "signed_at": "2026-06-09T21:50:56Z",
+      "pull_request_no": 752
+    },
+    {
+      "name": "raphaelsebb",
+      "id": 21245766,
+      "signed_at": "2026-06-13T09:22:29Z",
+      "pull_request_no": 788
+    },
+    {
+      "name": "devmc12",
+      "id": 28534333,
+      "signed_at": "2026-06-13T11:36:07Z",
+      "pull_request_no": 789
+    },
+    {
+      "name": "mrofisr",
+      "id": 31870041,
+      "signed_at": "2026-06-15T16:20:11Z",
+      "pull_request_no": 824
+    },
+    {
+      "name": "sorenlouv",
+      "id": 209966,
+      "signed_at": "2026-06-15T21:17:08Z",
+      "pull_request_no": 821
+    },
+    {
+      "name": "aldrinjenson",
+      "id": 53407417,
+      "signed_at": "2026-06-15T21:49:16Z",
+      "pull_request_no": 828
+    },
+    {
+      "name": "sathinator-afk",
+      "id": 286852155,
+      "signed_at": "2026-06-16T08:31:00Z",
+      "pull_request_no": 837
+    },
+    {
+      "name": "khalifmv",
+      "id": 49638000,
+      "signed_at": "2026-06-16T11:15:17Z",
+      "pull_request_no": 840
     }
   ]
 }

@@ -4,6 +4,11 @@
 
 ```ts
 
+import { Node as Node_2 } from 'prosemirror-model';
+
+// @public
+export function applySdtFocus(container: HTMLElement, focusedIds: Set<string>): void;
+
 // @public
 export type BlockLookup = Map<string, BlockLookupEntry>;
 
@@ -18,6 +23,9 @@ export interface BlockLookupEntry {
 }
 
 // @public
+export function buildBlockLookup(blocks: FlowBlock[], measures: Measure[]): BlockLookup;
+
+// @public
 export function captureInlinePositionEmu(imageEl: HTMLElement, zoom?: number): {
     horizontalEmu: number;
     verticalEmu: number;
@@ -28,6 +36,9 @@ export function createPainter(options?: PainterOptions): LayoutPainter;
 
 // @public
 export function deriveLayoutChoice(wrapType: WrapType, cssFloat?: ImageAttrs['cssFloat'] | null): ImageLayoutTarget | null;
+
+// @public
+export function enclosingSdtGroupIds(doc: Node_2, from: number, to: number): Set<string>;
 
 // @public
 export function findImageElement(target: EventTarget | null): HTMLElement | null;
@@ -52,6 +63,7 @@ export const FRAGMENT_CLASS_NAMES: {
 // @public
 export interface HeaderFooterContent {
     blocks: FlowBlock[];
+    flowHeight?: number;
     height: number;
     measures: Measure[];
     visualBottom?: number;
@@ -121,6 +133,25 @@ export class LayoutPainter {
 }
 
 // @public
+export interface PageGeometry {
+    // (undocumented)
+    contentHeight: number;
+    // (undocumented)
+    contentWidth: number;
+    // (undocumented)
+    marginLeft: number;
+    // (undocumented)
+    marginTop: number;
+    // (undocumented)
+    pageHeight: number;
+    // (undocumented)
+    pageWidth: number;
+}
+
+// @public (undocumented)
+export function pageGeometryFromPage(page: Pick<Page, 'size' | 'margins'>): PageGeometry;
+
+// @public
 export interface PainterOptions {
     containerBackground?: string;
     document?: Document;
@@ -128,6 +159,9 @@ export interface PainterOptions {
     pageGap?: number;
     showShadow?: boolean;
 }
+
+// @public
+export function renderAllPagesNow(container: HTMLElement): number;
 
 // @public
 export interface RenderContext {
@@ -179,6 +213,7 @@ export interface RenderPageOptions {
     showShadow?: boolean;
     theme?: Theme | null;
     titlePg?: boolean;
+    watermark?: Watermark;
 }
 
 // @public
@@ -198,6 +233,12 @@ export function renderTableFragment(fragment: TableFragment, block: TableBlock, 
 
 // @public
 export function renderTextBoxFragment(fragment: TextBoxFragment, block: TextBoxBlock, measure: TextBoxMeasure, context: RenderContext, options?: RenderTextBoxFragmentOptions): HTMLElement;
+
+// @public (undocumented)
+export function resolveAnchoredObjectPosition(object: AnchoredObjectPositionInput, fragmentY: number, contentWidth: number, geometry?: PageGeometry): AnchoredObjectPosition;
+
+// @public
+export function resolveAnchoredObjectVerticalTop(object: AnchoredObjectPositionInput, fragmentY: number, geometry?: PageGeometry): number;
 
 // @public
 export function sliceRunsForLine(block: ParagraphBlock, line: MeasuredLine): Run[];

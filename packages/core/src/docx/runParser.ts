@@ -26,6 +26,8 @@ import type {
   BreakContent,
   SymbolContent,
   NoteReferenceContent,
+  NoteRefMarkContent,
+  SeparatorContent,
   FieldCharContent,
   InstrTextContent,
   SoftHyphenContent,
@@ -54,6 +56,7 @@ import {
 } from './xmlParser';
 import { resolveThemeFontRef } from './themeParser';
 import { parseImage } from './imageParser';
+import { parseVmlImageContent } from './vmlImageParser';
 
 /**
  * Parse color value from attributes
@@ -641,10 +644,17 @@ function parseRunContents(
         break;
 
       case 'pict':
-      case 'object':
-        // Legacy VML pictures/objects - will handle in shape parser
-        // For now, skip these
+      case 'object': {
+        // Legacy VML pictures (e.g. header logos): <w:pict><v:shape>
+        // <v:imagedata r:id/></v:shape></w:pict>. Watermark shapes are left to
+        // extractWatermark. Non-image VML (text watermarks, drawn shapes) is
+        // still ignored here.
+        const vmlImage = parseVmlImageContent(child, rels, media);
+        if (vmlImage) {
+          contents.push(vmlImage);
+        }
         break;
+      }
 
       case 'rPr':
         // Run properties - already handled separately
@@ -678,14 +688,24 @@ function parseRunContents(
       }
 
       case 'footnoteRef':
+        // The auto-number mark inside a footnote body (distinct from the
+        // w:footnoteReference placed in the document body).
+        contents.push({ type: 'footnoteRefMark' } as NoteRefMarkContent);
+        break;
+
       case 'endnoteRef':
-        // These are the actual footnote/endnote content markers (different from Reference)
-        // They appear in the footnote/endnote text itself
+        // The auto-number mark inside an endnote body.
+        contents.push({ type: 'endnoteRefMark' } as NoteRefMarkContent);
         break;
 
       case 'separator':
+        // Horizontal rule in the separator note.
+        contents.push({ type: 'separator' } as SeparatorContent);
+        break;
+
       case 'continuationSeparator':
-        // Footnote/endnote separators
+        // Horizontal rule in the continuation-separator note.
+        contents.push({ type: 'continuationSeparator' } as SeparatorContent);
         break;
 
       default:

@@ -46,11 +46,20 @@ import type {
 } from '@eigenpal/docx-editor-core/headless';
 import { mapHexToHighlightName, pointsToHalfPoints } from '@eigenpal/docx-editor-core/headless';
 import { getParagraphAtIndex } from './utils';
+import { CommentNotFoundError } from './errors';
 
 /**
  * Build the paraId → top-level paragraphIndex map. Counting mirrors
  * `forEachParagraph` / `getParagraphAtIndex` in utils.ts so the lookup
  * stays consistent with the reviewer's own walker.
+ *
+ * A paragraph that lacks a `w14:paraId` is keyed by its ordinal index as a
+ * string. This mirrors `formatContentForLLM` (content.ts), whose `read_document`
+ * output labels such paragraphs `[<index>]` rather than `[<paraId>]` — so the
+ * id the agent is handed always resolves here. Without this, a document with no
+ * paraIds (Word doesn't always emit them) advertises ids the mutate tools then
+ * reject. The index space is identical to `getContent`, so the string key and
+ * the label match exactly.
  */
 function buildParaIdMap(reviewer: DocxReviewer): Map<string, number> {
   const body = reviewer.toDocument().package?.document;
@@ -65,7 +74,7 @@ function buildParaIdMap(reviewer: DocxReviewer): Map<string, number> {
   for (const block of body.content) {
     if (block.type === 'paragraph') {
       const paraId = (block as Paragraph).paraId;
-      if (paraId) map.set(paraId, index);
+      map.set(paraId ?? String(index), index);
       index++;
     } else if (block.type === 'table') {
       // Cell paragraphs advance the index but aren't directly addressable in
@@ -352,10 +361,10 @@ export function createReviewerBridge(reviewer: DocxReviewer): EditorBridge {
   // unsubscribe is a no-op.
   const contentListeners = new Set<(e: ContentChangeEvent) => void>();
 
-  // (paraId → paragraphIndex) cache. None of the reviewer's current mutators
-  // insert/remove top-level body blocks — they mutate paragraph content and
-  // append to body.comments — so the index map is invariant under the
-  // mutators we expose. Build once, lazy.
+  // (paraId → paragraphIndex) cache. Most mutators only mutate paragraph
+  // content / append to body.comments, so the index map stays invariant and we
+  // build it once, lazily. `insertBreak({type:'page'})` is the exception — it
+  // inserts a top-level block, so it resets `cache` to force a rebuild.
   let cache: Map<string, number> | null = null;
   function map(): Map<string, number> {
     if (cache === null) cache = buildParaIdMap(reviewer);
@@ -410,11 +419,29 @@ export function createReviewerBridge(reviewer: DocxReviewer): EditorBridge {
       const matches: FoundMatch[] = [];
       const CONTEXT = 40;
 
+      // Track the top-level ordinal index exactly as buildParaIdMap does, so a
+      // paraId-less paragraph surfaces the same `String(index)` id the mutate
+      // tools resolve. Tables advance the index by their cell-paragraph count
+      // (cells aren't searched here — same top-level-only scope as before).
+      let index = 0;
       for (const block of body.content) {
         if (matches.length >= limit) break;
-        if (block.type !== 'paragraph') continue;
+        if (block.type === 'table') {
+          for (const row of block.rows) {
+            for (const cell of row.cells) {
+              for (const cellBlock of cell.content) {
+                if (cellBlock.type === 'paragraph') index++;
+              }
+            }
+          }
+          continue;
+        }
+        if (block.type !== 'paragraph') {
+          index++;
+          continue;
+        }
         const para = block as Paragraph;
-        if (!para.paraId) continue;
+        const paraIndex = index++;
         const text = getParagraphPlainText(para);
         const haystack = caseSensitive ? text : text.toLowerCase();
         const at = haystack.indexOf(needle);
@@ -423,7 +450,7 @@ export function createReviewerBridge(reviewer: DocxReviewer): EditorBridge {
         if (haystack.indexOf(needle, at + 1) !== -1) continue;
         const match = text.slice(at, at + query.length);
         matches.push({
-          paraId: para.paraId,
+          paraId: para.paraId ?? String(paraIndex),
           match,
           before: text.slice(Math.max(0, at - CONTEXT), at),
           after: text.slice(at + query.length, at + query.length + CONTEXT),
@@ -465,14 +492,18 @@ export function createReviewerBridge(reviewer: DocxReviewer): EditorBridge {
     },
 
     /** Mark a comment resolved. DocxReviewer doesn't expose this directly,
-     * so we mutate the body's comment record in place. */
+     * so we mutate the body's comment record in place. Throws
+     * `CommentNotFoundError` if no comment carries `commentId` — mirrors the
+     * not-found semantics of `acceptChange`/`removeComment` so a missed id is a
+     * loud failure, not a silent no-op that reports success to the caller. */
     resolveComment(commentId: number): void {
       const body = reviewer.toDocument().package?.document;
       const comment = body?.comments?.find((c) => c.id === commentId);
-      if (comment) {
-        comment.done = true;
-        emitContentChange();
+      if (!comment) {
+        throw new CommentNotFoundError(commentId);
       }
+      comment.done = true;
+      emitContentChange();
     },
 
     proposeChange(options: ProposeChangeOptions): boolean {
@@ -555,6 +586,46 @@ export function createReviewerBridge(reviewer: DocxReviewer): EditorBridge {
       try {
         const para = getParagraphAtIndex(body, idx);
         para.formatting = { ...(para.formatting ?? {}), styleId: options.styleId };
+        emitContentChange();
+        return true;
+      } catch {
+        return false;
+      }
+    },
+
+    insertBreak(options): boolean {
+      const idx = map().get(options.paraId);
+      if (idx === undefined) return false;
+
+      const body = reviewer.toDocument().package?.document;
+      if (!body) return false;
+
+      try {
+        const para = getParagraphAtIndex(body, idx);
+        if (!para) return false;
+
+        if (options.type === 'sectionNextPage' || options.type === 'sectionContinuous') {
+          // A section break is the sectPr carried by the section's last
+          // paragraph — set it directly on the target (no block-count change).
+          const sectionStart: 'nextPage' | 'continuous' =
+            options.type === 'sectionNextPage' ? 'nextPage' : 'continuous';
+          para.sectionProperties = { ...(para.sectionProperties ?? {}), sectionStart };
+          emitContentChange();
+          return true;
+        }
+
+        // Page break: insert a break-run paragraph right after the target
+        // top-level paragraph (the model shape `fromProseDoc` emits). paraIds
+        // only map top-level paragraphs, so the target is findable in
+        // `body.content`; inserting shifts indices, so rebuild the cache.
+        const pos = body.content.indexOf(para);
+        if (pos === -1) return false;
+        const pageBreakParagraph: Paragraph = {
+          type: 'paragraph',
+          content: [{ type: 'run', content: [{ type: 'break', breakType: 'page' }] }],
+        };
+        body.content.splice(pos + 1, 0, pageBreakParagraph);
+        cache = null;
         emitContentChange();
         return true;
       } catch {

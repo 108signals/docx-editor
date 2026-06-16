@@ -54,6 +54,7 @@ export function collectSectionConfigs(blocks: FlowBlock[], initialConfig: Sectio
 
 // @public
 export type ColumnBreakBlock = {
+    sdtGroups?: SdtGroup[];
     kind: 'columnBreak';
     id: BlockId;
     pmStart?: number;
@@ -159,6 +160,9 @@ export type FloatingTablePosition = {
 };
 
 // @public
+export function floatingTextBoxReservesBand(block: TextBoxFlowAttrs): boolean;
+
+// @public
 export function floatingTextBoxWrapsText(block: TextBoxFlowAttrs): boolean;
 
 // @public
@@ -236,6 +240,7 @@ export type HyperlinkInfo = {
 
 // @public
 export type ImageBlock = {
+    sdtGroups?: SdtGroup[];
     kind: 'image';
     id: BlockId;
     src: string;
@@ -312,6 +317,17 @@ export type ImageRunPosition = {
         align?: string;
     };
 };
+
+// @public
+export interface InlineSdtWidget {
+    alias?: string;
+    checked?: boolean;
+    groupId: string;
+    // (undocumented)
+    kind: 'checkbox';
+    pos: number;
+    tag?: string;
+}
 
 // @public
 export function isFloatingTextBoxBlock(block: TextBoxFlowAttrs): boolean;
@@ -438,6 +454,7 @@ export type Page = {
 
 // @public
 export type PageBreakBlock = {
+    sdtGroups?: SdtGroup[];
     kind: 'pageBreak';
     id: BlockId;
     pmStart?: number;
@@ -520,6 +537,7 @@ export type ParagraphAttrs = {
 
 // @public
 export type ParagraphBlock = {
+    sdtGroups?: SdtGroup[];
     kind: 'paragraph';
     id: BlockId;
     runs: Run[];
@@ -622,7 +640,28 @@ export function scheduleSectionBreak(block: SectionBreakBlock, state: SectionSta
 };
 
 // @public
+export interface SdtGroup {
+    // (undocumented)
+    alias?: string;
+    // (undocumented)
+    bound?: boolean;
+    // (undocumented)
+    checked?: boolean;
+    // (undocumented)
+    id: string;
+    // (undocumented)
+    lock?: string;
+    // (undocumented)
+    repeatingItem?: boolean;
+    // (undocumented)
+    sdtType: string;
+    // (undocumented)
+    tag?: string;
+}
+
+// @public
 export type SectionBreakBlock = {
+    sdtGroups?: SdtGroup[];
     kind: 'sectionBreak';
     id: BlockId;
     type?: 'continuous' | 'nextPage' | 'evenPage' | 'oddPage';
@@ -680,6 +719,7 @@ export type TabAlignment = 'start' | 'end' | 'center' | 'decimal' | 'bar' | 'cle
 
 // @public
 export type TableBlock = {
+    sdtGroups?: SdtGroup[];
     kind: 'table';
     id: BlockId;
     rows: TableRow[];
@@ -734,6 +774,8 @@ export type TableFragment = FragmentBase & {
     continuesFromPrev?: boolean;
     continuesOnNext?: boolean;
     headerRowCount?: number;
+    topClip?: number;
+    bottomClip?: number;
 };
 
 // @public
@@ -752,6 +794,7 @@ export type TableRow = {
     height?: number;
     heightRule?: 'auto' | 'atLeast' | 'exact';
     isHeader?: boolean;
+    cantSplit?: boolean;
     trackedIns?: RevisionInfo;
     trackedDel?: RevisionInfo;
 };
@@ -779,6 +822,7 @@ export type TabStop = {
 
 // @public
 export type TextBoxBlock = {
+    sdtGroups?: SdtGroup[];
     kind: 'textBox';
     id: BlockId;
     width: number;
@@ -834,6 +878,7 @@ export type TextRun = RunFormatting & {
     hyperlink?: HyperlinkInfo;
     pmStart?: number;
     pmEnd?: number;
+    inlineSdtWidget?: InlineSdtWidget;
 };
 
 // @public

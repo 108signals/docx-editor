@@ -1,5 +1,165 @@
 # @eigenpal/docx-js-editor
 
+## 1.6.0
+
+### Minor Changes
+
+- a6a2dd0: Replace the Insert menu's "Page break" item with a "Break" submenu offering page break, section break (next page), and section break (continuous).
+- 5509418: Add a `colorMode` prop (`'light' | 'dark' | 'system'`) for native dark mode. Dark mode re-themes the editor chrome through the shared design tokens and renders the document canvas like Word's dark view: a dark page with light text where authored colours are lightness-inverted (hue preserved) for legibility. It is a display transform only; the saved DOCX is unchanged. `'system'` follows the OS `prefers-color-scheme`.
+- fae2765: Add a `watermarkPresets` prop to customize the text-watermark dialog's preset list. Pass an array of phrases to replace the built-in MS Word defaults (CONFIDENTIAL, DRAFT, …), or an empty array to hide the preset dropdown. Available in both React and Vue.
+
+### Patch Changes
+
+- 3a4a03f: Fix toolbar dropdowns closing when you scroll inside them. Scrolling the font size picker's preset list now keeps the dropdown open instead of dismissing it. Fixes #808.
+- bbda628: Apply selected font picker options by their primary family name so CSS fallback stacks like Lato, sans-serif do not get stored as document font names.
+- 7fe09f0: Share the paragraph-style-picker preview logic between the React and Vue toolbars. The filter/sort and per-style preview CSS now live once in `@eigenpal/docx-editor-core/utils/stylePreview` (`resolveParagraphStyleOptions` + `getStylePreviewProps`), which both adapters call, so the style dropdown can no longer drift between them. Also fixes a Vue toolbar bug where typing a font size and then clicking a preset could re-commit the typed value over the preset.
+- 7fe09f0: Align the React and Vue toolbar controls. The Vue font-size control is now an editable, clearly-bordered input box (matching React) instead of a plain button, and React's zoom control is now a − / + stepper around the level dropdown (matching Vue), so both adapters present the same editable zoom and font-size controls.
+- 7fe09f0: Unify the editor UI colors onto one CSS-variable token palette. The canonical chrome stylesheet now lives in `@eigenpal/docx-editor-core` (`packages/core/src/styles/editor.css`) and both adapters import it, so React and Vue can never drift. Component styles reference `--doc-*` tokens instead of hardcoded colors, and the shadcn HSL tokens are aligned to the same palette and support opacity modifiers. A commented `.ep-root.dark` scaffold is included as the structure for a future dark theme (no dark values are shipped yet — adding the `dark` class has no visual effect until they are filled in). Light-mode appearance is unchanged apart from minor consolidation of near-duplicate grays/blues. As part of this, the Vue full-screen loading overlay now uses the same dark backdrop with light text as React (previously a light backdrop), and the Vue editing-mode chip and toolbar dropdown elevation share React's hover/shadow tokens. The Vue toolbar buttons, dropdown triggers, menu items, and steppers now reference the same shadcn `foreground`/`muted-foreground`/`muted`/`border` tokens React uses (previously the `--doc-*` family), so the toolbar matches React in both light and dark mode; the dropdown triggers also render at React's normal weight (they previously looked bold), and the selected menu item uses React's grey highlight instead of an indigo tint.
+- Updated dependencies [a6a2dd0]
+- Updated dependencies [931931a]
+- Updated dependencies [fa3383b]
+- Updated dependencies [32c5382]
+- Updated dependencies [7fe09f0]
+- Updated dependencies [7fe09f0]
+- Updated dependencies [f50a3c7]
+- Updated dependencies [7fe09f0]
+  - @eigenpal/docx-editor-agents@1.6.0
+  - @eigenpal/docx-editor-core@1.6.0
+  - @eigenpal/docx-editor-i18n@1.6.0
+
+## 1.5.0
+
+### Minor Changes
+
+- 19a25eb: Add `scrollToCommentId`, `scrollToChangeId`, and `highlightRange` methods to `DocxEditorRef` on both the React and Vue adapters, for revealing a location in the editor. Each scrolls the comment, tracked change, or position range into view and selects it so the selection overlay highlights the spot. `scrollToCommentId` and `scrollToChangeId` return `false` when the id no longer resolves, so callers can surface a "location no longer exists" affordance instead of silently doing nothing.
+
+### Patch Changes
+
+- ab38192: Support clickable inline Word checkbox content controls
+- ca275f9: Fix the document outline toggle rendering above the title bar File menu. The outline button now uses the shared `Z_INDEX.outline` layer (40) instead of 50, and the toolbar shell is raised to `Z_INDEX.toolbar` (100) so title-bar dropdowns stay on top. Vue parity: outline toggle at 40, toolbar shell at 100.
+- Updated dependencies [7d02ec1]
+- Updated dependencies [04130ef]
+- Updated dependencies [ab38192]
+- Updated dependencies [5cdfa5c]
+- Updated dependencies [335ad6c]
+- Updated dependencies [c5a4b1e]
+- Updated dependencies [c4fd221]
+- Updated dependencies [ca005c5]
+- Updated dependencies [7d6daeb]
+- Updated dependencies [5cdfa5c]
+- Updated dependencies [44161e5]
+  - @eigenpal/docx-editor-core@1.5.0
+  - @eigenpal/docx-editor-agents@1.5.0
+  - @eigenpal/docx-editor-i18n@1.5.0
+
+## 1.4.0
+
+### Minor Changes
+
+- 1ab8b30: Image resize: drag a corner handle to scale (keeping aspect ratio) or an edge handle to stretch one side (width or height) and deliberately change the aspect ratio. Selection handles are now Word-style white dots. Inserted images keep their aspect ratio — a wide image dropped into a table cell or a narrow column now scales down to fit while staying in proportion, instead of squashing or overflowing the page. Fixes #266.
+
+### Patch Changes
+
+- Updated dependencies [28a521a]
+- Updated dependencies [1ab8b30]
+  - @eigenpal/docx-editor-core@1.4.0
+  - @eigenpal/docx-editor-agents@1.4.0
+  - @eigenpal/docx-editor-i18n@1.4.0
+
+## 1.3.3
+
+### Patch Changes
+
+- bd704e2: Assign every paragraph a stable id when a document is opened, so block ids and `getSelectionInfo().paraId` work before the first edit. Previously a document without `w14:paraId` had null ids until you typed or added a comment. Fixes #738.
+- Updated dependencies [bf748c0]
+- Updated dependencies [15d4f39]
+- Updated dependencies [06fa96b]
+- Updated dependencies [bd704e2]
+- Updated dependencies [30df527]
+  - @eigenpal/docx-editor-core@1.3.3
+  - @eigenpal/docx-editor-agents@1.3.3
+  - @eigenpal/docx-editor-i18n@1.3.3
+
+## 1.3.2
+
+### Patch Changes
+
+- Updated dependencies [3bd7bf7]
+- Updated dependencies [0ded2a1]
+- Updated dependencies [58e3a7e]
+  - @eigenpal/docx-editor-core@1.3.2
+  - @eigenpal/docx-editor-agents@1.3.2
+  - @eigenpal/docx-editor-i18n@1.3.2
+
+## 1.3.1
+
+### Patch Changes
+
+- 3fe9c57: Share the layout pipeline across the React and Vue adapters. The Vue editor now renders multi-column section layouts with correct per-section column widths, coalesces a burst of keystrokes into one layout pass per frame, and no longer scrolls the page when you edit. React behavior is unchanged.
+- d100115: Fix blank render on documents whose header contains a page-anchored letterhead. The body now clears the header/footer based on in-flow content only, so anchored shapes and text boxes (which Word positions on the page) no longer push the body off the page. Fixes #705.
+- 66cf3a8: Share the React/Vue editor orchestration through core so both adapters stay in lockstep. Vue gains three behaviors it was missing: multi-cell selection highlighting, drag-to-edge auto-scroll while selecting, and correct comment/tracked-change ID allocation (IDs are no longer reused after a delete and no longer collide across the comment/revision space). Vue selection rectangles now also cover tab stops and hyperlink text. No public API changes.
+- Updated dependencies [3fe9c57]
+- Updated dependencies [d100115]
+- Updated dependencies [db75f4f]
+- Updated dependencies [66cf3a8]
+  - @eigenpal/docx-editor-core@1.3.1
+  - @eigenpal/docx-editor-agents@1.3.1
+  - @eigenpal/docx-editor-i18n@1.3.1
+
+## 1.3.0
+
+### Patch Changes
+
+- 0d5beed: Fix long content in a table row getting cut off / hidden instead of flowing across pages. A table cell now measures its stacked paragraphs the way it paints them — collapsing adjacent paragraph before/after spacing (like Word) instead of adding it — so the row's height matches what's rendered and page breaks land on whole lines instead of slicing a line in two. Selecting text across a table that spans a page break no longer scatters selection highlights into the gap between pages, and contextual spacing is now suppressed inside table cells. Fixes #570.
+- Updated dependencies [15966fc]
+- Updated dependencies [2003cec]
+- Updated dependencies [5e51a9b]
+- Updated dependencies [cb5f622]
+- Updated dependencies [1be9cf5]
+- Updated dependencies [5fcca3b]
+- Updated dependencies [f73706e]
+- Updated dependencies [0d5beed]
+- Updated dependencies [5b38696]
+- Updated dependencies [15966fc]
+- Updated dependencies [f3d6861]
+- Updated dependencies [0f3eb97]
+- Updated dependencies [eaa6f7f]
+  - @eigenpal/docx-editor-core@1.3.0
+  - @eigenpal/docx-editor-agents@1.3.0
+  - @eigenpal/docx-editor-i18n@1.3.0
+
+## 1.2.1
+
+### Patch Changes
+
+- Updated dependencies [a0adf60]
+- Updated dependencies [1c2b098]
+  - @eigenpal/docx-editor-agents@1.2.1
+  - @eigenpal/docx-editor-core@1.2.1
+  - @eigenpal/docx-editor-i18n@1.2.1
+
+## 1.2.0
+
+### Minor Changes
+
+- 362a65f: Make block-level content controls (`w:sdt`) editable. Block structured document tags wrapping paragraphs or tables now convert to a dedicated ProseMirror node, so their content stays editable and the control survives the full edit cycle (previously it round-tripped on save but was flattened in the editor). The control boundary is drawn around its content in the paged view, and the region remains addressable by its tag/alias.
+- d791e05: Add content-control (SDT) methods to the editor ref. `getContentControls` lists block controls in the live document (filtered by tag/alias/id/type) with their text and position; `scrollToContentControl` brings one into view; `setContentControlContent` fills a control by tag (as a normal undoable edit); `removeContentControl` deletes or unwraps one. Locked controls are refused unless forced. Paired across the React and Vue adapters.
+- a60ed77: Add typed value setters for content controls. `setContentControlValue` (headless) and the `setContentControlValue` editor-ref method (React + Vue) set a dropdown selection, toggle a checkbox, or set a date by tag, updating both the visible content and the structured `w:sdtPr` state (dropdown `w:lastValue`, `w14:checked`, `w:date`'s `w:fullDate`). Validates the value against the control type and list items.
+- a60ed77: Support repeating sections (`w15:repeatingSection`) with add/remove, matching Word. `addRepeatingSectionItem`/`removeRepeatingSectionItem` (headless) clone an item with fresh unique ids or drop one (keeping at least one); the editor renders ＋/✕ affordances on each repeating item in React and Vue. Items round-trip losslessly.
+
+### Patch Changes
+
+- Updated dependencies [362a65f]
+- Updated dependencies [e30c763]
+- Updated dependencies [d791e05]
+- Updated dependencies [d791e05]
+- Updated dependencies [a60ed77]
+- Updated dependencies [bc67374]
+- Updated dependencies [a60ed77]
+  - @eigenpal/docx-editor-core@1.2.0
+  - @eigenpal/docx-editor-agents@1.2.0
+  - @eigenpal/docx-editor-i18n@1.2.0
+
 ## 1.1.0
 
 ### Minor Changes

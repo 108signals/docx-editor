@@ -43,12 +43,18 @@ import { type RawDocxContent } from './unzip';
 import { escapeXml } from './serializer/xmlUtils';
 
 import { collectParts, findMaxRId } from './rezip/parts';
-import { processNewImages, getContentTypeForExtension } from './rezip/images';
+import {
+  processNewImages,
+  processNewWatermarkImages,
+  getContentTypeForExtension,
+} from './rezip/images';
 import { processNewHyperlinks } from './rezip/hyperlinks';
 import {
   ensureHeaderFooterParts,
   serializeCommentsToZip,
   serializeHeadersFootersToZip,
+  serializeFootnotesToZip,
+  serializeEndnotesToZip,
 } from './rezip/packaging';
 import { createEmptyDocx } from './rezip/createEmpty';
 
@@ -127,6 +133,7 @@ export async function repackDocx(doc: Document, options: RepackOptions = {}): Pr
   // Mutates rIds in-place so serializers emit correct references.
   const parts = collectParts(exportDocument);
   await processNewImages(parts, newZip, compressionLevel);
+  await processNewWatermarkImages(exportDocument, newZip, compressionLevel);
   await processNewHyperlinks(parts, newZip, compressionLevel);
 
   // Serialize and update document.xml (after image/hyperlink rIds have been rewritten)
@@ -143,6 +150,10 @@ export async function repackDocx(doc: Document, options: RepackOptions = {}): Pr
 
   // Serialize comments
   await serializeCommentsToZip(exportDocument, newZip, compressionLevel);
+
+  // Serialize footnotes/endnotes (note-body edits + tracked changes)
+  serializeFootnotesToZip(exportDocument, newZip, compressionLevel);
+  serializeEndnotesToZip(exportDocument, newZip, compressionLevel);
 
   // Optionally update modification date in docProps/core.xml
   if (updateModifiedDate) {
@@ -213,6 +224,7 @@ export async function repackDocxFromRaw(
   // Process newly inserted images and hyperlinks across body + headers + footers.
   const parts = collectParts(exportDocument);
   await processNewImages(parts, newZip, compressionLevel);
+  await processNewWatermarkImages(exportDocument, newZip, compressionLevel);
   await processNewHyperlinks(parts, newZip, compressionLevel);
 
   const documentXml = serializeDocument(exportDocument);
@@ -228,6 +240,10 @@ export async function repackDocxFromRaw(
 
   // Serialize comments
   await serializeCommentsToZip(exportDocument, newZip, compressionLevel);
+
+  // Serialize footnotes/endnotes (note-body edits + tracked changes)
+  serializeFootnotesToZip(exportDocument, newZip, compressionLevel);
+  serializeEndnotesToZip(exportDocument, newZip, compressionLevel);
 
   // Optionally update core properties
   if (updateModifiedDate && rawContent.corePropsXml) {

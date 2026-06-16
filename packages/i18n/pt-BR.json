@@ -41,7 +41,11 @@
     "open": "Abrir",
     "openShortcut": "Ctrl+O",
     "save": "Salvar",
-    "saveShortcut": "Ctrl+S"
+    "saveShortcut": "Ctrl+S",
+    "watermark": "Marca d'água",
+    "break": null,
+    "sectionBreakContinuous": null,
+    "sectionBreakNextPage": null
   },
   "formattingBar": {
     "groups": {
@@ -77,7 +81,9 @@
     "subscriptShortcut": "Subscrito (Ctrl+=)",
     "imageProperties": "Propriedades da imagem",
     "imagePropertiesShortcut": "Propriedades da imagem (texto alternativo, borda)...",
-    "clearFormatting": "Limpar formatação"
+    "clearFormatting": "Limpar formatação",
+    "commentsAndChanges": null,
+    "moreItems": null
   },
   "alignment": {
     "alignLeft": "Alinhar à esquerda",
@@ -102,7 +108,8 @@
     "single": "Simples",
     "double": "Duplo",
     "lineSpacingTitle": "Espaçamento entre linhas: {label}",
-    "paragraphSpacing": "Espaçamento entre parágrafos"
+    "paragraphSpacing": "Espaçamento entre parágrafos",
+    "label": null
   },
   "styles": {
     "selectAriaLabel": "Selecionar estilo de parágrafo",
@@ -117,7 +124,8 @@
     "selectAriaLabel": "Selecionar família da fonte",
     "sansSerif": "Sans Serif",
     "serif": "Serif",
-    "monospace": "Monoespaçado"
+    "monospace": "Monoespaçado",
+    "other": null
   },
   "fontSize": {
     "decrease": "Diminuir tamanho da fonte",
@@ -126,7 +134,10 @@
     "listLabel": "Tamanhos da fonte"
   },
   "zoom": {
-    "ariaLabel": "Zoom: {label}"
+    "ariaLabel": "Zoom: {label}",
+    "zoomIn": null,
+    "zoomLevel": null,
+    "zoomOut": null
   },
   "colorPicker": {
     "ariaLabel": "Seletor de cores {type}",
@@ -531,6 +542,27 @@
       "noResults": "Nenhum atalho encontrado para \"{query}\"",
       "pressEscToClose": "Pressione {key} para fechar",
       "or": "ou"
+    },
+    "watermark": {
+      "applyButton": "Aplicar",
+      "cancelButton": "Cancelar",
+      "colorLabel": "Cor",
+      "diagonal": "Diagonal",
+      "fontLabel": "Fonte",
+      "horizontal": "Horizontal",
+      "layoutLabel": "Layout",
+      "noWatermark": "Sem marca d'água",
+      "picture": "Marca d'água de imagem",
+      "presetLabel": "Predefinição",
+      "scale": "Escala",
+      "selectPicture": "Selecionar imagem…",
+      "semitransparent": "Semitransparente",
+      "sizeAuto": "Automático",
+      "sizeLabel": "Tamanho",
+      "text": "Marca d'água de texto",
+      "textLabel": "Texto",
+      "title": "Marca d'água",
+      "washout": "Desbotado"
     }
   },
   "comments": {
@@ -817,7 +849,8 @@
   "imageOverlay": {
     "deleteImage": "Excluir imagem",
     "imageProperties": "Propriedades da imagem",
-    "rotate": "Girar"
+    "rotate": "Girar",
+    "replaceImage": null
   },
   "revisions": {
     "cellDeleted": null,

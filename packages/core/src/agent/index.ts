@@ -102,3 +102,31 @@ export {
   createCommand,
   DEFAULT_AI_ACTIONS,
 } from '../types/agentApi';
+
+// Content-control (SDT) addressing — discover and edit block controls by tag.
+export {
+  findContentControls,
+  findContentControl,
+  getContentControlText,
+  setContentControlContent,
+  removeContentControl,
+  ContentControlNotFoundError,
+  ContentControlLockedError,
+  ContentControlTypeError,
+  ContentControlBoundError,
+  type ContentControlFilter,
+  type ContentControlInfo,
+} from './contentControls';
+export {
+  setContentControlValue,
+  formatSdtDate,
+  ContentControlValueError,
+  type ContentControlValue,
+} from './contentControlValues';
+export {
+  addRepeatingSectionItem,
+  removeRepeatingSectionItem,
+  isRepeatingSection,
+  isRepeatingSectionItem,
+  RepeatingSectionError,
+} from './repeatingSection';

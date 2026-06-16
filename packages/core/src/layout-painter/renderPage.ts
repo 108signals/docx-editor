@@ -30,7 +30,9 @@ import type {
   TextBoxBlock,
   TextBoxMeasure,
   TextBoxFragment,
+  SdtGroup,
 } from '../layout-engine/types';
+import { renderSdtBoundaryBoxes } from './sdtBoundary';
 import { renderFragment } from './renderFragment';
 import { renderParagraphFragment } from './renderParagraph';
 import { renderTableFragment } from './renderTable';
@@ -39,7 +41,8 @@ import { renderTextBoxFragment } from './renderTextBox';
 import type { BlockLookup } from './index';
 import type { BorderSpec } from '../types/document';
 import { borderToStyle } from '../utils/formatToStyle';
-import type { Theme } from '../types/document';
+import type { Theme, Watermark } from '../types/document';
+import { renderWatermarkLayer } from './renderWatermark';
 import {
   measureParagraph,
   rectsToFloatingZones,
@@ -48,7 +51,11 @@ import {
 } from '../layout-bridge/measuring';
 import { resolveFontFamily } from '../utils/fontResolver';
 import { pointsToPixels } from '../utils/units';
-import { floatingTextBoxWrapsText, isFloatingTextBoxBlock } from '../layout-engine/textBoxFlow';
+import {
+  floatingTextBoxReservesBand,
+  floatingTextBoxWrapsText,
+  isFloatingTextBoxBlock,
+} from '../layout-engine/textBoxFlow';
 import {
   floatingImageIsBehindDoc,
   floatingImageWrapsText,
@@ -84,9 +91,16 @@ export {
   type FloatingImagesLayerOptions,
 } from './floatingImageLayer';
 export type { HeaderFooterContent, HeaderFooterLayoutInfo } from './renderPage/headerFooter';
-export { resolveHeaderFooterFloatingTablePosition } from './renderPage/headerFooter';
+export {
+  resolveHeaderFooterFloatingTablePosition,
+  resolveHeaderFooterFloatLeft,
+} from './renderPage/headerFooter';
 export type { FootnoteRenderItem } from './renderPage/footnotes';
-export { renderPages, type RenderPagesUpdateKind } from './renderPage/virtualization';
+export {
+  renderPages,
+  renderAllPagesNow,
+  type RenderPagesUpdateKind,
+} from './renderPage/virtualization';
 
 /**
  * Page-level floating image that has been extracted from paragraphs.
@@ -209,6 +223,8 @@ export interface RenderPageOptions {
   footnoteArea?: FootnoteRenderItem[];
   /** Comment IDs that are resolved — skip highlight for these */
   resolvedCommentIds?: Set<number>;
+  /** Watermark to paint behind body content (resolved from the page's section header). */
+  watermark?: Watermark;
 }
 
 /**
@@ -224,7 +240,11 @@ export function applyPageStyles(
   element.style.position = 'relative';
   element.style.width = `${width}px`;
   element.style.height = `${height}px`;
-  element.style.backgroundColor = options.backgroundColor ?? '#ffffff';
+  // Resolve via CSS custom properties so dark mode (.ep-root.dark) re-themes
+  // the canvas without any adapter wiring. Word renders a dark page with light
+  // text in dark mode; this is a VIEW transform only — the saved DOCX is never
+  // changed, and authored run colors keep their own inline color.
+  element.style.backgroundColor = options.backgroundColor ?? 'var(--doc-page-bg, #ffffff)';
   element.style.overflow = 'hidden';
 
   // Page-level default (11pt Calibri). Must use the same chain as canvas
@@ -233,7 +253,7 @@ export function applyPageStyles(
   element.style.fontFamily = resolveFontFamily('Calibri').cssFallback;
   // Use pixels to match Canvas-based measurements (11pt = 11 * 96/72 ≈ 14.67px)
   element.style.fontSize = `${(11 * 96) / 72}px`;
-  element.style.color = '#000000';
+  element.style.color = 'var(--doc-page-text, #000000)';
 
   if (options.showBorders) {
     element.style.border = '1px solid #ccc';
@@ -360,11 +380,18 @@ function applyFragmentStyles(
 ): void {
   element.style.position = 'absolute';
   element.style.left = `${fragment.x - margins.left}px`;
-  element.style.top = `${fragment.y - margins.top}px`;
+  // Tables draw 1px cell borders on an internal whole-pixel row grid; if the
+  // table's own top is fractional those borders fall between device pixels and
+  // render unevenly soft/thick. Snap a table's top (and height) to whole pixels
+  // so its border grid aligns with the page (which sits on the pixel grid).
+  const top = fragment.y - margins.top;
+  element.style.top = `${fragment.kind === 'table' ? Math.round(top) : top}px`;
   element.style.width = `${fragment.width}px`;
 
-  // Height handling varies by fragment type
-  if ('height' in fragment) {
+  // Height handling varies by fragment type. Tables set their own height in
+  // renderTableFragment (from the rounded row stack, so the bottom border isn't
+  // clipped) — don't override it here.
+  if ('height' in fragment && fragment.kind !== 'table') {
     element.style.height = `${fragment.height}px`;
   }
 }
@@ -442,6 +469,16 @@ export function renderPage(
   pageEl.dataset.pageNumber = String(page.number);
 
   applyPageStyles(pageEl, page.size.w, page.size.h, options);
+
+  // Watermark layer: painted first so it sits behind the body content area
+  // (which is appended later), matching Word's behind-text watermark.
+  if (options.watermark) {
+    const watermarkLayer = renderWatermarkLayer(options.watermark, page, doc);
+    if (watermarkLayer) {
+      pageEl.appendChild(watermarkLayer);
+    }
+  }
+
   const pageBorderEl = renderPageBorderOverlay(page, options, doc);
   if (pageBorderEl && options.pageBorders?.zOrder === 'back') {
     pageEl.appendChild(pageBorderEl);
@@ -559,7 +596,11 @@ export function renderPage(
       fragment.x = page.margins.left + resolved.x;
       fragment.y = page.margins.top + resolved.y;
 
-      if (!floatingTextBoxWrapsText(textBoxBlock)) continue;
+      // topAndBottom reserves a full-width band (text flows above/below);
+      // side-wrap types reserve a side exclusion. Both push a rect — the band
+      // is distinguished by `wrapType` in rectsToFloatingZones.
+      const reservesBand = floatingTextBoxReservesBand(textBoxBlock);
+      if (!reservesBand && !floatingTextBoxWrapsText(textBoxBlock)) continue;
 
       floatingRects.push({
         side: resolved.side,
@@ -606,6 +647,32 @@ export function renderPage(
 
   let prevParagraphBorders: ParagraphBorders | undefined;
   const renderedInlineImageKeysByBlock = new Map<string, Set<string>>();
+
+  // Block-level Structured Document Tag (content control) membership for a
+  // fragment, derived from its block's `sdtGroups` (set in toFlowBlocks).
+  const sdtGroupsOf = (frag: Fragment): SdtGroup[] => {
+    if (!options.blockLookup || !frag.blockId) return [];
+    return options.blockLookup.get(String(frag.blockId))?.block.sdtGroups ?? [];
+  };
+
+  /**
+   * Stamp a painted fragment with its enclosing content-control identity, so
+   * selection / addressing can find the region by tag/alias. The innermost
+   * group drives the dataset attrs; the visible boundary box is drawn
+   * separately (see `renderSdtBoundaryBoxes`) so a multi-block control reads
+   * as one rounded rectangle rather than per-fragment rules.
+   */
+  const stampSdtFragment = (el: HTMLElement, groups: SdtGroup[]): void => {
+    if (groups.length === 0) return;
+    const innermost = groups[groups.length - 1];
+    el.classList.add('layout-block-sdt');
+    el.dataset.sdtGroupId = innermost.id;
+    el.dataset.sdtType = innermost.sdtType;
+    el.dataset.sdtDepth = String(groups.length);
+    if (innermost.tag != null) el.dataset.sdtTag = innermost.tag;
+    if (innermost.alias != null) el.dataset.sdtAlias = innermost.alias;
+    if (innermost.lock != null) el.dataset.sdtLock = innermost.lock;
+  };
 
   for (let i = 0; i < page.fragments.length; i++) {
     const fragment = page.fragments[i];
@@ -708,8 +775,19 @@ export function renderPage(
     }
 
     applyFragmentStyles(fragmentEl, fragment, { left: page.margins.left, top: page.margins.top });
+
+    // Tag fragments enclosed by a block-level content control so selection /
+    // addressing can find the region; the boundary box is drawn afterward.
+    stampSdtFragment(fragmentEl, sdtGroupsOf(fragment));
+
     contentEl.appendChild(fragmentEl);
   }
+
+  // Draw one boundary box per block-level content control on this page,
+  // spanning the vertical extent of its fragments at content width — so a
+  // multi-block (or nested) control reads as a single rounded rectangle with
+  // a corner label, matching Word. Nested controls each get their own box.
+  renderSdtBoundaryBoxes(page, contentEl, contentWidth, sdtGroupsOf, doc);
 
   // Render in-front floating images after text fragments so wrapNone and
   // wrapping images paint above body text without participating in flow.

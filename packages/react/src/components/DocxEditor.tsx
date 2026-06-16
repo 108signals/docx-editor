@@ -13,12 +13,14 @@ import { useRef, useCallback, useState, useEffect, useMemo, forwardRef } from 'r
 import type { CSSProperties, ReactNode } from 'react';
 import type { Document, Theme } from '@eigenpal/docx-editor-core/types/document';
 
+import { cn } from '../lib/utils';
 import { type SelectionFormatting } from './Toolbar';
 import type { AgentPanelOptions } from './DocxEditor/types';
 import { useOutlineSidebar } from './DocxEditor/hooks/useOutlineSidebar';
 import { useKeyboardShortcuts } from './DocxEditor/hooks/useKeyboardShortcuts';
 import { useFileIO } from './DocxEditor/hooks/useFileIO';
 import { usePageSetupControls } from './DocxEditor/hooks/usePageSetupControls';
+import { useWatermarkControls } from './DocxEditor/hooks/useWatermarkControls';
 import { useHyperlinkActions } from './DocxEditor/hooks/useHyperlinkActions';
 import { useFindReplaceBridge } from './DocxEditor/hooks/useFindReplaceBridge';
 import { useFormattingActions } from './DocxEditor/hooks/useFormattingActions';
@@ -38,6 +40,7 @@ import { DocxEditorOverlays } from './DocxEditor/DocxEditorOverlays';
 import { DocxEditorDialogs } from './DocxEditor/DocxEditorDialogs';
 import { DocxEditorToolbar } from './DocxEditor/DocxEditorToolbar';
 import { DocxEditorPagedArea } from './DocxEditor/DocxEditorPagedArea';
+import { ContentControlWidgets } from './DocxEditor/ContentControlWidgets';
 import { useResetEditorState } from './DocxEditor/hooks/useResetEditorState';
 import { DocxEditorShell } from './DocxEditor/DocxEditorShell';
 import type { FontOption } from './ui/FontPicker';
@@ -78,7 +81,9 @@ import {
   extractSelectionState,
   createStyleResolver,
   type TableContextInfo,
+  type PMContentControl,
 } from '@eigenpal/docx-editor-core/prosemirror';
+import type { ContentControlFilter, ContentControlValue } from '@eigenpal/docx-editor-core/agent';
 import {
   acceptChange,
   rejectChange,
@@ -86,6 +91,11 @@ import {
   rejectChangeById,
 } from '@eigenpal/docx-editor-core/prosemirror/commands';
 import { collectHeadings } from '@eigenpal/docx-editor-core/utils';
+import {
+  prefersColorSchemeDark,
+  resolveIsDark,
+  subscribeSystemDark,
+} from '@eigenpal/docx-editor-core/utils';
 
 // Paginated editor
 import { type PagedEditorRef, DEFAULT_PAGE_WIDTH } from './DocxEditor/PagedEditor';
@@ -131,7 +141,9 @@ export interface DocxEditorProps {
   externalContent?: boolean;
   /** Callback when editor view is ready (for PluginHost) */
   onEditorViewReady?: (view: import('prosemirror-view').EditorView) => void;
-  /** Theme for styling */
+  /** Color theme mode for UI styling. `'system'` follows the OS preference. */
+  colorMode?: 'light' | 'dark' | 'system';
+  /** Document theme schema object */
   theme?: Theme | null;
   /** Whether to show toolbar (default: true) */
   showToolbar?: boolean;
@@ -198,6 +210,15 @@ export interface DocxEditorProps {
    * ]}
    */
   fonts?: ReadonlyArray<FontDefinition>;
+  /**
+   * Text-watermark presets shown in the watermark dialog's preset dropdown.
+   * Omit to use the built-in MS Word phrases (`DEFAULT_WATERMARK_PRESETS`:
+   * CONFIDENTIAL, DRAFT, DO NOT COPY, SAMPLE, URGENT, ASAP). Pass an empty
+   * array to hide the preset dropdown and require custom text.
+   *
+   * @example watermarkPresets={['INTERNAL', 'PROPRIETARY', 'COPY']}
+   */
+  watermarkPresets?: readonly string[];
   /** Print options for print preview */
   printOptions?: PrintOptions;
   /**
@@ -327,6 +348,36 @@ export interface DocxEditorRef {
    * @example ref.current?.scrollToPosition(42)
    */
   scrollToPosition: (pmPos: number) => void;
+  /**
+   * Scroll the paginated view to the comment with the given id and select its
+   * anchored range so the selection overlay highlights it. Resolves the id
+   * against the live comment marks at call time.
+   * @returns `false` when the id no longer resolves (the comment was deleted
+   *   or its anchored text removed between render and click), so the caller
+   *   can surface a "location no longer exists" affordance rather than
+   *   silently no-op'ing.
+   * @example ref.current?.scrollToCommentId(3)
+   */
+  scrollToCommentId: (commentId: number) => boolean;
+  /**
+   * Scroll the paginated view to the tracked change with the given Word
+   * revision `w:id` and select its range so the selection overlay highlights
+   * it. Resolves the id against the live tracked-change marks at call time
+   * (matching coalesced revisions the way the changes sidebar does).
+   * @returns `false` when the id no longer resolves (the change was
+   *   accepted, rejected, or deleted between render and click).
+   * @example ref.current?.scrollToChangeId(42)
+   */
+  scrollToChangeId: (revisionId: number) => boolean;
+  /**
+   * Select the ProseMirror position range `[from, to]` so the selection
+   * overlay highlights it, and scroll its start into view. The selection
+   * persists until it next changes (there is no auto-clearing flash). No-op
+   * for a malformed range or a `from` past the document end; `to` is clamped
+   * to the document size.
+   * @example ref.current?.highlightRange(10, 24)
+   */
+  highlightRange: (from: number, to: number) => void;
   /** Open print preview */
   openPrintPreview: () => void;
   /** Print the document directly */
@@ -390,6 +441,16 @@ export interface DocxEditorRef {
    */
   setParagraphStyle: (options: { paraId: string; styleId: string }) => boolean;
   /**
+   * Insert a page or section break after the paragraph identified by `paraId`.
+   * `'page'` adds a page break; `'sectionNextPage'` / `'sectionContinuous'`
+   * start a new section on a new page / the same page. Direct edit, not a
+   * tracked change. Returns false if paraId is unknown.
+   */
+  insertBreak: (options: {
+    paraId: string;
+    type: 'page' | 'sectionNextPage' | 'sectionContinuous';
+  }) => boolean;
+  /**
    * Read the contents of a single page. 1-indexed; returns null if the page
    * does not exist. Each paragraph is returned with its stable paraId so the
    * agent can comment on or modify it without an extra round-trip.
@@ -409,6 +470,45 @@ export interface DocxEditorRef {
   } | null;
   /** Get all comments. */
   getComments: () => Comment[];
+  /**
+   * List block-level content controls (SDTs) in the live document, optionally
+   * filtered by `tag`/`alias`/`id`/`type`. Each result includes the control's
+   * text and PM position. Anchors for templates and document automation.
+   */
+  getContentControls: (filter?: ContentControlFilter) => PMContentControl[];
+  /** Scroll the first content control matching `filter` into view. Returns false if none. */
+  scrollToContentControl: (filter: ContentControlFilter) => boolean;
+  /**
+   * Replace the content of the first control matching `filter` with `text`
+   * (newlines become paragraphs). Returns false if no match. Throws if the
+   * control is content-locked unless `{ force: true }`.
+   */
+  setContentControlContent: (
+    filter: ContentControlFilter,
+    text: string,
+    options?: { force?: boolean }
+  ) => boolean;
+  /**
+   * Remove the first control matching `filter`. With `{ keepContent: true }`
+   * the inner blocks are unwrapped in place. Returns false if no match. Throws
+   * if the control is deletion-locked unless `{ force: true }`.
+   */
+  removeContentControl: (
+    filter: ContentControlFilter,
+    options?: { force?: boolean; keepContent?: boolean }
+  ) => boolean;
+  /**
+   * Set a typed value on the first control matching `filter`: a dropdown
+   * selection (`{ kind: 'dropdown', value }`), checkbox (`{ kind: 'checkbox',
+   * checked }`), or date (`{ kind: 'date', date }`). Updates the visible
+   * content and structured state. Returns false if no match; throws if
+   * content-locked (unless `force`) or the value doesn't fit the control type.
+   */
+  setContentControlValue: (
+    filter: ContentControlFilter,
+    value: ContentControlValue,
+    options?: { force?: boolean }
+  ) => boolean;
   /** Subscribe to document changes. Fires after every committed edit. Returns unsubscribe. */
   onContentChange: (listener: (document: Document) => void) => () => void;
   /** Subscribe to selection changes (cursor moves / selection changes). Returns unsubscribe. */
@@ -464,6 +564,7 @@ import {
   PENDING_COMMENT_ID,
   EMPTY_ANCHOR_POSITIONS,
   createComment,
+  createCommentIdAllocator,
 } from './DocxEditor/commentFactories';
 
 /**
@@ -479,6 +580,7 @@ export const DocxEditor = forwardRef<DocxEditorRef, DocxEditorProps>(function Do
     onSelectionChange,
     onError,
     onFontsLoaded: onFontsLoadedCallback,
+    colorMode = 'light',
     theme,
     showToolbar = true,
     showZoomControl = true,
@@ -498,6 +600,7 @@ export const DocxEditor = forwardRef<DocxEditorRef, DocxEditorProps>(function Do
     showOutlineButton = true,
     fontFamilies,
     fonts,
+    watermarkPresets,
     printOptions: _printOptions,
     onPrint,
     onCopy: _onCopy,
@@ -542,6 +645,16 @@ export const DocxEditor = forwardRef<DocxEditorRef, DocxEditorProps>(function Do
     pmTableContext: null,
     pmImageContext: null,
   });
+
+  const [systemDark, setSystemDark] = useState(prefersColorSchemeDark);
+  useEffect(() => {
+    // subscribeSystemDark re-syncs immediately (correcting a stale seed if the
+    // OS theme changed while colorMode was 'light'/'dark') and is SSR-safe.
+    if (colorMode !== 'system') return;
+    return subscribeSystemDark(setSystemDark);
+  }, [colorMode]);
+
+  const isDark = resolveIsDark(colorMode, systemDark);
 
   // Header/footer editing state (lifted into the parent so getActiveEditorView
   // can read hfEditPosition before useHeaderFooterEditing is called).
@@ -711,6 +824,11 @@ export const DocxEditor = forwardRef<DocxEditorRef, DocxEditorProps>(function Do
   const commentsLoadedRef = useRef(false);
   const trackedChangesLoadedRef = useRef(false);
 
+  // One comment/revision ID allocator per editor instance (monotonic, no reuse).
+  // Seeded above the loaded doc's max ID on load; shared by every comment/
+  // tracked-change allocation in this component and its hooks.
+  const commentIdAllocatorRef = useRef(createCommentIdAllocator());
+
   const { resetForNewDocument } = useResetEditorState({
     commentsLoadedRef,
     trackedChangesLoadedRef,
@@ -743,6 +861,7 @@ export const DocxEditor = forwardRef<DocxEditorRef, DocxEditorProps>(function Do
     onError,
     resetForNewDocument,
     commentsLoadedRef,
+    commentIdAllocator: commentIdAllocatorRef.current,
   });
 
   const {
@@ -957,16 +1076,22 @@ export const DocxEditor = forwardRef<DocxEditorRef, DocxEditorProps>(function Do
     getCachedStyleResolver,
   });
 
-  const { handleFormat, handleInsertTable, handleInsertPageBreak, handleInsertTOC } =
-    useFormattingActions({
-      getActiveEditorView,
-      focusActiveEditor,
-      pagedEditorRef,
-      lastSelectionRef,
-      hyperlinkDialog,
-      historyStateRef,
-      getCachedStyleResolver,
-    });
+  const {
+    handleFormat,
+    handleInsertTable,
+    handleInsertPageBreak,
+    handleInsertSectionBreakNextPage,
+    handleInsertSectionBreakContinuous,
+    handleInsertTOC,
+  } = useFormattingActions({
+    getActiveEditorView,
+    focusActiveEditor,
+    pagedEditorRef,
+    lastSelectionRef,
+    hyperlinkDialog,
+    historyStateRef,
+    getCachedStyleResolver,
+  });
 
   const handleZoomChange = useCallback((zoom: number) => {
     setState((prev) => ({ ...prev, zoom }));
@@ -1038,6 +1163,17 @@ export const DocxEditor = forwardRef<DocxEditorRef, DocxEditorProps>(function Do
     getActiveEditorView,
   });
 
+  const {
+    showWatermark,
+    setShowWatermark,
+    handleOpenWatermark,
+    currentWatermark,
+    handleWatermarkApply,
+  } = useWatermarkControls({
+    readOnly,
+    getBodyEditorView: () => pagedEditorRef.current?.getView(),
+  });
+
   const { scrollPageInfo, setScrollPageInfo } = useScrollPageInfo({
     scrollContainerRef,
     pagedEditorRef,
@@ -1084,6 +1220,7 @@ export const DocxEditor = forwardRef<DocxEditorRef, DocxEditorProps>(function Do
     contentChangeSubscribersRef,
     selectionChangeSubscribersRef,
     getCachedStyleResolver,
+    commentIdAllocator: commentIdAllocatorRef.current,
   });
 
   const initialSectionProperties = useMemo(
@@ -1137,7 +1274,7 @@ export const DocxEditor = forwardRef<DocxEditorRef, DocxEditorProps>(function Do
   const commentCallbacksRef = useRef<CommentCallbacks>({});
   commentCallbacksRef.current = {
     onCommentReply: (id, text) => {
-      const reply = createComment(text, author, id);
+      const reply = createComment(commentIdAllocatorRef.current, text, author, id);
       const parent = comments.find((c) => c.id === id);
       setComments((prev) => [...prev, reply]);
       if (parent) onCommentReply?.(reply, parent);
@@ -1172,7 +1309,7 @@ export const DocxEditor = forwardRef<DocxEditorRef, DocxEditorProps>(function Do
       if (target) onCommentDelete?.(target);
     },
     onAddComment: (addText) => {
-      const comment = createComment(addText, author);
+      const comment = createComment(commentIdAllocatorRef.current, addText, author);
       const view = pagedEditorRef.current?.getView();
       if (view && commentSelectionRange) {
         const { from, to } = commentSelectionRange;
@@ -1224,7 +1361,10 @@ export const DocxEditor = forwardRef<DocxEditorRef, DocxEditorProps>(function Do
       if (view) rejectChangeById(revisionId)(view.state, view.dispatch);
     },
     onTrackedChangeReply: (revisionId, text) => {
-      setComments((prev) => [...prev, createComment(text, author, revisionId)]);
+      setComments((prev) => [
+        ...prev,
+        createComment(commentIdAllocatorRef.current, text, author, revisionId),
+      ]);
     },
   };
 
@@ -1393,7 +1533,7 @@ export const DocxEditor = forwardRef<DocxEditorRef, DocxEditorProps>(function Do
   if (state.isLoading) {
     return (
       <div
-        className={`ep-root docx-editor docx-editor-loading ${className}`}
+        className={cn('ep-root docx-editor docx-editor-loading', isDark && 'dark', className)}
         style={containerStyle}
         data-testid="docx-editor"
       >
@@ -1406,7 +1546,7 @@ export const DocxEditor = forwardRef<DocxEditorRef, DocxEditorProps>(function Do
   if (state.parseError) {
     return (
       <div
-        className={`ep-root docx-editor docx-editor-error ${className}`}
+        className={cn('ep-root docx-editor docx-editor-error', isDark && 'dark', className)}
         style={containerStyle}
         data-testid="docx-editor"
       >
@@ -1419,7 +1559,7 @@ export const DocxEditor = forwardRef<DocxEditorRef, DocxEditorProps>(function Do
   if (!history.state) {
     return (
       <div
-        className={`ep-root docx-editor docx-editor-empty ${className}`}
+        className={cn('ep-root docx-editor docx-editor-empty', isDark && 'dark', className)}
         style={containerStyle}
         data-testid="docx-editor"
       >
@@ -1455,6 +1595,7 @@ export const DocxEditor = forwardRef<DocxEditorRef, DocxEditorProps>(function Do
   return (
     <DocxEditorShell
       i18n={i18n}
+      isDark={isDark}
       onEditorError={handleEditorError}
       containerRef={containerRef}
       scrollContainerRef={scrollContainerRef}
@@ -1552,83 +1693,94 @@ export const DocxEditor = forwardRef<DocxEditorRef, DocxEditorProps>(function Do
             onInsertTable={handleInsertTable}
             onInsertImage={handleInsertImageClick}
             onInsertPageBreak={handleInsertPageBreak}
+            onInsertSectionBreakNextPage={handleInsertSectionBreakNextPage}
+            onInsertSectionBreakContinuous={handleInsertSectionBreakContinuous}
             onInsertTOC={handleInsertTOC}
             onImageWrapType={handleImageWrapType}
             onImageTransform={handleImageTransform}
             onOpenImageProperties={handleOpenImageProperties}
             onPageSetup={handleOpenPageSetup}
+            onWatermark={handleOpenWatermark}
             onTableAction={handleTableAction}
           />
         ) : null
       }
       pagedArea={
-        <DocxEditorPagedArea
-          pagedEditorRef={pagedEditorRef}
-          hfEditorRef={hfEditorRef}
-          scrollContainerRef={scrollContainerRef}
-          editorContentRef={editorContentRef}
-          document={history.state}
-          theme={theme}
-          initialSectionProperties={initialSectionProperties}
-          finalSectionProperties={finalSectionProperties}
-          headerContent={headerContent}
-          footerContent={footerContent}
-          firstPageHeaderContent={firstPageHeaderContent}
-          firstPageFooterContent={firstPageFooterContent}
-          hfEditPosition={hfEditPosition}
-          setHfEditPosition={setHfEditPosition}
-          hfEditIsFirstPage={hfEditIsFirstPage}
-          onHeaderFooterDoubleClick={handleHeaderFooterDoubleClick}
-          onHeaderFooterSave={handleHeaderFooterSave}
-          onRemoveHeaderFooter={handleRemoveHeaderFooter}
-          onBodyClick={handleBodyClick}
-          getHfTargetElement={getHfTargetElement}
-          zoom={state.zoom}
-          readOnly={readOnly}
-          extensionManager={extensionManager}
-          externalPlugins={allExternalPlugins}
-          onDocumentChange={handleDocumentChange}
-          onSelectionChange={handleSelectionChange}
-          onPagedSelectionChange={handlePagedSelectionChange}
-          onReady={(ref) => {
-            const view = ref.getView();
-            if (view) setPmState(view.state);
-          }}
-          onEditorViewReady={onEditorViewReady}
-          onRenderedDomContextReady={onRenderedDomContextReady}
-          pluginOverlays={pluginOverlays}
-          onHyperlinkClick={handleHyperlinkClick}
-          hyperlinkPopupData={hyperlinkPopupData}
-          onHyperlinkPopupNavigate={handleHyperlinkPopupNavigate}
-          onHyperlinkPopupCopy={handleHyperlinkPopupCopy}
-          onHyperlinkPopupEdit={handleHyperlinkPopupEdit}
-          onHyperlinkPopupRemove={handleHyperlinkPopupRemove}
-          onHyperlinkPopupClose={handleHyperlinkPopupClose}
-          onContextMenu={handleContextMenu}
-          sidebarOpen={sidebarOpen}
-          sidebarItems={allSidebarItems}
-          anchorPositions={anchorPositions}
-          onAnchorPositionsChange={setAnchorPositions}
-          pluginRenderedDomContext={pluginRenderedDomContext}
-          pageWidthPx={pageWidthPx}
-          expandedSidebarItem={expandedSidebarItem}
-          setExpandedSidebarItem={setExpandedSidebarItem}
-          comments={comments}
-          resolvedCommentIds={resolvedCommentIds}
-          resolvedIdsForRender={resolvedIdsForRender}
-          setShowCommentsSidebar={setShowCommentsSidebar}
-          onTotalPagesChange={(totalPages) => {
-            setScrollPageInfo((prev) =>
-              prev.totalPages === totalPages ? prev : { ...prev, totalPages }
-            );
-          }}
-          floatingCommentBtn={floatingCommentBtn}
-          isAddingComment={isAddingComment}
-          setCommentSelectionRange={setCommentSelectionRange}
-          setAddCommentYPosition={setAddCommentYPosition}
-          setIsAddingComment={setIsAddingComment}
-          setFloatingCommentBtn={setFloatingCommentBtn}
-        />
+        <>
+          <DocxEditorPagedArea
+            pagedEditorRef={pagedEditorRef}
+            hfEditorRef={hfEditorRef}
+            scrollContainerRef={scrollContainerRef}
+            editorContentRef={editorContentRef}
+            document={history.state}
+            theme={theme}
+            initialSectionProperties={initialSectionProperties}
+            finalSectionProperties={finalSectionProperties}
+            headerContent={headerContent}
+            footerContent={footerContent}
+            firstPageHeaderContent={firstPageHeaderContent}
+            firstPageFooterContent={firstPageFooterContent}
+            hfEditPosition={hfEditPosition}
+            setHfEditPosition={setHfEditPosition}
+            hfEditIsFirstPage={hfEditIsFirstPage}
+            onHeaderFooterDoubleClick={handleHeaderFooterDoubleClick}
+            onHeaderFooterSave={handleHeaderFooterSave}
+            onRemoveHeaderFooter={handleRemoveHeaderFooter}
+            onBodyClick={handleBodyClick}
+            getHfTargetElement={getHfTargetElement}
+            zoom={state.zoom}
+            readOnly={readOnly}
+            extensionManager={extensionManager}
+            externalPlugins={allExternalPlugins}
+            onDocumentChange={handleDocumentChange}
+            onSelectionChange={handleSelectionChange}
+            onPagedSelectionChange={handlePagedSelectionChange}
+            onReady={(ref) => {
+              const view = ref.getView();
+              if (view) setPmState(view.state);
+            }}
+            onEditorViewReady={onEditorViewReady}
+            onRenderedDomContextReady={onRenderedDomContextReady}
+            pluginOverlays={pluginOverlays}
+            onHyperlinkClick={handleHyperlinkClick}
+            hyperlinkPopupData={hyperlinkPopupData}
+            onHyperlinkPopupNavigate={handleHyperlinkPopupNavigate}
+            onHyperlinkPopupCopy={handleHyperlinkPopupCopy}
+            onHyperlinkPopupEdit={handleHyperlinkPopupEdit}
+            onHyperlinkPopupRemove={handleHyperlinkPopupRemove}
+            onHyperlinkPopupClose={handleHyperlinkPopupClose}
+            onContextMenu={handleContextMenu}
+            sidebarOpen={sidebarOpen}
+            sidebarItems={allSidebarItems}
+            anchorPositions={anchorPositions}
+            onAnchorPositionsChange={setAnchorPositions}
+            pluginRenderedDomContext={pluginRenderedDomContext}
+            pageWidthPx={pageWidthPx}
+            expandedSidebarItem={expandedSidebarItem}
+            setExpandedSidebarItem={setExpandedSidebarItem}
+            comments={comments}
+            resolvedCommentIds={resolvedCommentIds}
+            resolvedIdsForRender={resolvedIdsForRender}
+            setShowCommentsSidebar={setShowCommentsSidebar}
+            onTotalPagesChange={(totalPages) => {
+              setScrollPageInfo((prev) =>
+                prev.totalPages === totalPages ? prev : { ...prev, totalPages }
+              );
+            }}
+            floatingCommentBtn={floatingCommentBtn}
+            isAddingComment={isAddingComment}
+            setCommentSelectionRange={setCommentSelectionRange}
+            setAddCommentYPosition={setAddCommentYPosition}
+            setIsAddingComment={setIsAddingComment}
+            setFloatingCommentBtn={setFloatingCommentBtn}
+          />
+          {!readOnly && (
+            <ContentControlWidgets
+              containerRef={containerRef}
+              getView={() => pagedEditorRef.current?.getView() ?? null}
+            />
+          )}
+        </>
       }
       overlays={
         <DocxEditorOverlays
@@ -1672,6 +1824,11 @@ export const DocxEditor = forwardRef<DocxEditorRef, DocxEditorProps>(function Do
           showPageSetup={showPageSetup}
           onPageSetupClose={() => setShowPageSetup(false)}
           onPageSetupApply={handlePageSetupApply}
+          showWatermark={showWatermark}
+          onWatermarkClose={() => setShowWatermark(false)}
+          onWatermarkApply={handleWatermarkApply}
+          currentWatermark={currentWatermark}
+          watermarkPresets={watermarkPresets}
           document={history.state}
           footnotePropsOpen={footnotePropsOpen}
           onFootnotePropsClose={() => setFootnotePropsOpen(false)}

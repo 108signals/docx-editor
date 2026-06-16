@@ -711,6 +711,14 @@ export function IconPageBreak(props: IconProps) {
   );
 }
 
+export function IconWatermark(props: IconProps) {
+  return (
+    <SvgIcon {...props}>
+      <path d="M160-160q-33 0-56.5-23.5T80-240v-480q0-33 23.5-56.5T160-800h640q33 0 56.5 23.5T880-720v480q0 33-23.5 56.5T800-160H160Zm0-80h640v-480H160v480Zm320-60q66 0 113-37t47-93q0-29-13-58t-34-55q-21-26-50-49t-50-31q-21 8-50 31t-50 49q-21 26-34 55t-13 58q0 56 47 93t140 37Z" />
+    </SvgIcon>
+  );
+}
+
 export function IconArrowBack(props: IconProps) {
   return (
     <SvgIcon {...props}>
@@ -749,7 +757,7 @@ export function IconChatBubbleCheck(props: IconProps) {
   return (
     <SvgIcon {...props}>
       <path d="M80-80v-720q0-33 23.5-56.5T160-880h640q33 0 56.5 23.5T880-800v480q0 33-23.5 56.5T800-240H240L80-80Zm126-240h594v-480H160v525l46-45Zm-46 0v-480 480Z" />
-      <path fill="#188038" d="m421-380 227-227-45-45-182 182-92-91-45 45 137 136Z" />
+      <path fill="var(--doc-success)" d="m421-380 227-227-45-45-182 182-92-91-45 45 137 136Z" />
     </SvgIcon>
   );
 }
@@ -929,6 +937,8 @@ const iconMap: Record<string, React.ComponentType<IconProps>> = {
   more_vert: IconMoreVert,
   // Page break
   page_break: IconPageBreak,
+  // Watermark
+  branding_watermark: IconWatermark,
   // Navigation
   arrow_back: IconArrowBack,
   // Comments sidebar

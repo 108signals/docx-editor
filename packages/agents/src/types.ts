@@ -69,7 +69,22 @@ export interface ReviewChange {
   date: string | null;
   text: string;
   context: string;
+  /**
+   * Index of the containing paragraph. For body changes this is the
+   * document-wide paragraph index; for note changes it is the paragraph index
+   * *within that note* (note bodies have their own numbering), so pair it with
+   * `noteId` / `noteType` rather than reading it as a body index.
+   */
   paragraphIndex: number;
+  /**
+   * Set when the change lives inside a footnote or endnote. The raw `id` is not
+   * namespaced across parts, so pair it with `noteId` / `noteType` to identify
+   * the change, and pass the whole `ReviewChange` back to `acceptChange` /
+   * `rejectChange` to resolve it inside that note.
+   */
+  noteId?: number;
+  /** Which note store the change came from. Absent for body changes. */
+  noteType?: 'footnote' | 'endnote';
 }
 
 export interface ReviewCommentReply {
@@ -93,7 +108,17 @@ export interface ReviewComment {
 export interface ChangeFilter {
   author?: string;
   type?: 'insertion' | 'deletion' | 'moveFrom' | 'moveTo';
+  /** Also report tracked changes inside footnote bodies. Default: false. */
+  includeFootnotes?: boolean;
+  /** Also report tracked changes inside endnote bodies. Default: false. */
+  includeEndnotes?: boolean;
 }
+
+/**
+ * Options for `acceptAll` / `rejectAll`. Opt in to also resolve tracked changes
+ * inside footnote/endnote bodies; mirrors the discovery flags on {@link ChangeFilter}.
+ */
+export type AcceptChangesOptions = Pick<ChangeFilter, 'includeFootnotes' | 'includeEndnotes'>;
 
 export interface CommentFilter {
   author?: string;
@@ -220,6 +245,19 @@ export interface ApplyFormattingOptions {
 export interface SetParagraphStyleOptions {
   paraId: string;
   styleId: string;
+}
+
+/** Kind of break `insertBreak` inserts after a paragraph. */
+export type BreakType = 'page' | 'sectionNextPage' | 'sectionContinuous';
+
+/**
+ * Insert a page or section break after the paragraph identified by `paraId`.
+ * `page` adds a page break; `sectionNextPage` starts a new section on a new
+ * page; `sectionContinuous` starts a new section on the same page.
+ */
+export interface InsertBreakOptions {
+  paraId: string;
+  type: BreakType;
 }
 
 /** A single paragraph anchored on a page (returned by `getPage` / `getPages`). */

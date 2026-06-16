@@ -19,7 +19,7 @@ export type BlockContent = Paragraph | Table | BlockSdt;
 
 // @public
 export interface BlockSdt {
-    content: (Paragraph | Table)[];
+    content: BlockContent[];
     properties: SdtProperties;
     // (undocumented)
     type: 'blockSdt';
@@ -145,6 +145,9 @@ export interface ConditionalFormatStyle {
 }
 
 // @public
+export const DEFAULT_WATERMARK_PRESETS: readonly string[];
+
+// @public
 export interface Deletion {
     content: (Run | Hyperlink)[];
     info: TrackedChangeInfo;
@@ -184,9 +187,11 @@ export interface DocumentSettings {
 export interface DocxPackage {
     document: DocumentBody;
     endnotes?: Endnote[];
+    endnoteSeparators?: Endnote[];
     fontTable?: FontTable;
     footers?: Map<string, HeaderFooter>;
     footnotes?: Footnote[];
+    footnoteSeparators?: Footnote[];
     headers?: Map<string, HeaderFooter>;
     media?: Map<string, MediaFile>;
     numbering?: NumberingDefinitions;
@@ -219,11 +224,12 @@ export type EmphasisMark = 'none' | 'dot' | 'comma' | 'circle' | 'underDot';
 
 // @public
 export interface Endnote {
-    content: (Paragraph | Table)[];
+    content: BlockContent[];
     id: number;
     noteType?: 'normal' | 'separator' | 'continuationSeparator' | 'continuationNotice';
     // (undocumented)
     type: 'endnote';
+    verbatimXml?: string;
 }
 
 // @public
@@ -316,11 +322,12 @@ export interface FooterReference {
 
 // @public
 export interface Footnote {
-    content: (Paragraph | Table)[];
+    content: BlockContent[];
     id: number;
     noteType?: 'normal' | 'separator' | 'continuationSeparator' | 'continuationNotice';
     // (undocumented)
     type: 'footnote';
+    verbatimXml?: string;
 }
 
 // @public
@@ -340,10 +347,11 @@ export interface FootnoteProperties {
 
 // @public
 export interface HeaderFooter {
-    content: (Paragraph | Table)[];
+    content: BlockContent[];
     hdrFtrType: HeaderFooterType;
     // (undocumented)
     type: 'header' | 'footer';
+    watermark?: Watermark;
 }
 
 // @public
@@ -623,7 +631,13 @@ export interface NoteReferenceContent {
 }
 
 // @public
-export type NumberFormat = 'decimal' | 'upperRoman' | 'lowerRoman' | 'upperLetter' | 'lowerLetter' | 'ordinal' | 'cardinalText' | 'ordinalText' | 'hex' | 'chicago' | 'ideographDigital' | 'japaneseCounting' | 'aiueo' | 'iroha' | 'decimalFullWidth' | 'decimalHalfWidth' | 'japaneseLegal' | 'japaneseDigitalTenThousand' | 'decimalEnclosedCircle' | 'decimalFullWidth2' | 'aiueoFullWidth' | 'irohaFullWidth' | 'decimalZero' | 'bullet' | 'ganada' | 'chosung' | 'decimalEnclosedFullstop' | 'decimalEnclosedParen' | 'decimalEnclosedCircleChinese' | 'ideographEnclosedCircle' | 'ideographTraditional' | 'ideographZodiac' | 'ideographZodiacTraditional' | 'taiwaneseCounting' | 'ideographLegalTraditional' | 'taiwaneseCountingThousand' | 'taiwaneseDigital' | 'chineseCounting' | 'chineseLegalSimplified' | 'chineseCountingThousand' | 'koreanDigital' | 'koreanCounting' | 'koreanLegal' | 'koreanDigital2' | 'vietnameseCounting' | 'russianLower' | 'russianUpper' | 'none' | 'numberInDash' | 'hebrew1' | 'hebrew2' | 'arabicAlpha' | 'arabicAbjad' | 'hindiVowels' | 'hindiConsonants' | 'hindiNumbers' | 'hindiCounting' | 'thaiLetters' | 'thaiNumbers' | 'thaiCounting';
+export interface NoteRefMarkContent {
+    // (undocumented)
+    type: 'footnoteRefMark' | 'endnoteRefMark';
+}
+
+// @public
+export type NumberFormat = 'decimal' | 'upperRoman' | 'lowerRoman' | 'upperLetter' | 'lowerLetter' | 'ordinal' | 'cardinalText' | 'ordinalText' | 'hex' | 'chicago' | 'ideographDigital' | 'japaneseCounting' | 'aiueo' | 'iroha' | 'decimalFullWidth' | 'decimalHalfWidth' | 'japaneseLegal' | 'japaneseDigitalTenThousand' | 'decimalEnclosedCircle' | 'decimalFullWidth2' | 'aiueoFullWidth' | 'irohaFullWidth' | 'decimalZero' | 'decimalZero3' | 'decimalZero4' | 'decimalZero5' | 'bullet' | 'ganada' | 'chosung' | 'decimalEnclosedFullstop' | 'decimalEnclosedParen' | 'decimalEnclosedCircleChinese' | 'ideographEnclosedCircle' | 'ideographTraditional' | 'ideographZodiac' | 'ideographZodiacTraditional' | 'taiwaneseCounting' | 'ideographLegalTraditional' | 'taiwaneseCountingThousand' | 'taiwaneseDigital' | 'chineseCounting' | 'chineseLegalSimplified' | 'chineseCountingThousand' | 'koreanDigital' | 'koreanCounting' | 'koreanLegal' | 'koreanDigital2' | 'vietnameseCounting' | 'russianLower' | 'russianUpper' | 'none' | 'numberInDash' | 'hebrew1' | 'hebrew2' | 'arabicAlpha' | 'arabicAbjad' | 'hindiVowels' | 'hindiConsonants' | 'hindiNumbers' | 'hindiCounting' | 'thaiLetters' | 'thaiNumbers' | 'thaiCounting';
 
 // @public
 export interface NumberingDefinitions {
@@ -705,6 +719,10 @@ export interface ParagraphFormatting {
         numId?: number;
         ilvl?: number;
     };
+    numPrFromStyle?: {
+        numId?: number;
+        ilvl?: number;
+    };
     outlineLevel?: number;
     pageBreakBefore?: boolean;
     runProperties?: TextFormatting;
@@ -727,6 +745,27 @@ export interface ParagraphPropertyChange {
     // (undocumented)
     type: 'paragraphPropertyChange';
 }
+
+// @public
+export interface PictureWatermark {
+    contentType?: string;
+    data?: Uint8Array;
+    dataUrl?: string;
+    heightEmu?: number;
+    // (undocumented)
+    kind: 'picture';
+    mediaPath?: string;
+    relId?: string;
+    scale: number;
+    washout: boolean;
+    widthEmu?: number;
+}
+
+// @public
+export function pictureWatermarkDisplayEmu(naturalWidthPx: number, naturalHeightPx: number): {
+    widthEmu: number;
+    heightEmu: number;
+} | undefined;
 
 // @public
 export interface PropertyChangeInfo extends TrackedChangeInfo {
@@ -757,7 +796,7 @@ export interface Run {
 }
 
 // @public
-export type RunContent = TextContent | TabContent | BreakContent | SymbolContent | NoteReferenceContent | FieldCharContent | InstrTextContent | SoftHyphenContent | NoBreakHyphenContent | DrawingContent | ShapeContent;
+export type RunContent = TextContent | TabContent | BreakContent | SymbolContent | NoteReferenceContent | NoteRefMarkContent | SeparatorContent | FieldCharContent | InstrTextContent | SoftHyphenContent | NoBreakHyphenContent | DrawingContent | ShapeContent;
 
 // @public
 export interface RunPropertyChange {
@@ -769,23 +808,34 @@ export interface RunPropertyChange {
 }
 
 // @public
+export interface SdtDataBinding {
+    prefixMappings?: string;
+    storeItemID?: string;
+    xpath?: string;
+}
+
+// @public
 export interface SdtProperties {
     alias?: string;
     checked?: boolean;
+    dataBinding?: SdtDataBinding;
     dateFormat?: string;
+    id?: number;
     listItems?: {
         displayText: string;
         value: string;
     }[];
     lock?: 'sdtLocked' | 'contentLocked' | 'sdtContentLocked' | 'unlocked';
     placeholder?: string;
+    rawEndPropertiesXml?: string;
+    rawPropertiesXml?: string;
     sdtType: SdtType;
     showingPlaceholder?: boolean;
     tag?: string;
 }
 
 // @public
-export type SdtType = 'richText' | 'plainText' | 'date' | 'dropdown' | 'comboBox' | 'checkbox' | 'picture' | 'buildingBlockGallery' | 'group' | 'unknown';
+export type SdtType = 'richText' | 'plainText' | 'date' | 'dropDownList' | 'comboBox' | 'checkbox' | 'picture' | 'buildingBlockGallery' | 'group' | 'equation' | 'citation' | 'bibliography' | 'unknown';
 
 // @public
 export interface Section {
@@ -853,6 +903,12 @@ export interface SectionProperties {
 
 // @public
 export type SectionStart = 'continuous' | 'nextPage' | 'oddPage' | 'evenPage' | 'nextColumn';
+
+// @public
+export interface SeparatorContent {
+    // (undocumented)
+    type: 'separator' | 'continuationSeparator';
+}
 
 // @public
 export interface ShadingProperties {
@@ -1257,6 +1313,18 @@ export interface TextFormatting {
 }
 
 // @public
+export interface TextWatermark {
+    color: string;
+    font: string;
+    fontSize?: number;
+    // (undocumented)
+    kind: 'text';
+    layout: 'diagonal' | 'horizontal';
+    semitransparent: boolean;
+    text: string;
+}
+
+// @public
 export interface Theme {
     colorScheme?: ThemeColorScheme;
     fontScheme?: ThemeFontScheme;
@@ -1319,5 +1387,8 @@ export type UnderlineStyle = 'none' | 'single' | 'words' | 'double' | 'thick' | 
 
 // @public
 export type VerticalAlign = 'top' | 'center' | 'both' | 'bottom';
+
+// @public
+export type Watermark = TextWatermark | PictureWatermark;
 
 ```

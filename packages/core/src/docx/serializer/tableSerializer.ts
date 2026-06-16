@@ -30,13 +30,13 @@ import type {
   TableLook,
   CellMargins,
   FloatingTableProperties,
-  ConditionalFormatStyle,
   BorderSpec,
   ShadingProperties,
   Paragraph,
 } from '../../types/document';
 
 import { serializeParagraph } from './paragraphSerializer';
+import { serializeConditionalFormatStyle } from './conditionalFormatSerializer';
 import { escapeXml, intAttr } from './xmlUtils';
 
 function normalizeTrackedChangeInfo(info: { id: number; author: string; date?: string }): {
@@ -384,15 +384,25 @@ export function serializeTableFormatting(
   const parts: string[] = [];
 
   if (formatting) {
+    // Children must follow the CT_TblPrBase sequence (wml.xsd):
+    // tblStyle, tblpPr, tblOverlap, bidiVisual, tblW, jc, tblCellSpacing,
+    // tblInd, tblBorders, shd, tblLayout, tblCellMar, tblLook. Word repairs
+    // out-of-order children, but strict validators reject them.
+
     // Table style (must be first)
     if (formatting.styleId) {
       parts.push(`<w:tblStyle w:val="${escapeXml(formatting.styleId)}"/>`);
     }
 
-    // Floating table properties
+    // Floating table properties (w:tblpPr)
     const floatingXml = serializeFloatingTableProperties(formatting.floating);
     if (floatingXml) {
       parts.push(floatingXml);
+    }
+
+    // Overlap
+    if (formatting.overlap) {
+      parts.push(`<w:tblOverlap w:val="${formatting.overlap}"/>`);
     }
 
     // Bidirectional
@@ -429,10 +439,10 @@ export function serializeTableFormatting(
       parts.push(bordersXml);
     }
 
-    // Default cell margins
-    const marginsXml = serializeCellMargins(formatting.cellMargins, 'tblCellMar');
-    if (marginsXml) {
-      parts.push(marginsXml);
+    // Shading
+    const shadingXml = serializeShading(formatting.shading);
+    if (shadingXml) {
+      parts.push(shadingXml);
     }
 
     // Table layout
@@ -440,21 +450,16 @@ export function serializeTableFormatting(
       parts.push(`<w:tblLayout w:type="${formatting.layout}"/>`);
     }
 
-    // Shading
-    const shadingXml = serializeShading(formatting.shading);
-    if (shadingXml) {
-      parts.push(shadingXml);
+    // Default cell margins
+    const marginsXml = serializeCellMargins(formatting.cellMargins, 'tblCellMar');
+    if (marginsXml) {
+      parts.push(marginsXml);
     }
 
     // Table look
     const lookXml = serializeTableLook(formatting.look);
     if (lookXml) {
       parts.push(lookXml);
-    }
-
-    // Overlap
-    if (formatting.overlap) {
-      parts.push(`<w:tblOverlap w:val="${formatting.overlap}"/>`);
     }
   }
 
@@ -501,6 +506,14 @@ export function serializeTableRowFormatting(
   const parts: string[] = [];
 
   if (formatting) {
+    // Conditional format style (w:cnfStyle) — first child of CT_TrPr. Carries
+    // table-style row context (header row, banding) that Word resolves from
+    // the table style; dropping it degrades styled tables on round-trip.
+    const cnfStyleXml = serializeConditionalFormatStyle(formatting.conditionalFormat);
+    if (cnfStyleXml) {
+      parts.push(cnfStyleXml);
+    }
+
     // Can't split
     if (formatting.cantSplit) {
       parts.push('<w:cantSplit/>');
@@ -568,40 +581,6 @@ function serializeTableRowPropertyChange(change: TableRowPropertyChange): string
     previousTrPrInner.length > 0 ? `<w:trPr>${previousTrPrInner}</w:trPr>` : '<w:trPr/>';
 
   return `<w:trPrChange ${attrs}>${normalizedPreviousTrPr}</w:trPrChange>`;
-}
-
-// ============================================================================
-// CONDITIONAL FORMAT STYLE SERIALIZATION
-// ============================================================================
-
-/**
- * Serialize conditional format style (w:cnfStyle)
- */
-function serializeConditionalFormatStyle(style: ConditionalFormatStyle | undefined): string {
-  if (!style) return '';
-
-  // Build the 12-character binary string
-  const bits = [
-    style.firstRow ? '1' : '0',
-    style.lastRow ? '1' : '0',
-    style.firstColumn ? '1' : '0',
-    style.lastColumn ? '1' : '0',
-    style.oddVBand ? '1' : '0',
-    style.evenVBand ? '1' : '0',
-    style.oddHBand ? '1' : '0',
-    style.evenHBand ? '1' : '0',
-    style.nwCell ? '1' : '0',
-    style.neCell ? '1' : '0',
-    style.swCell ? '1' : '0',
-    style.seCell ? '1' : '0',
-  ];
-
-  const val = bits.join('');
-
-  // Only serialize if any bits are set
-  if (val === '000000000000') return '';
-
-  return `<w:cnfStyle w:val="${val}"/>`;
 }
 
 // ============================================================================

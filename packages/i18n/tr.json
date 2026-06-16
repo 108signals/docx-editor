@@ -41,7 +41,11 @@
     "tableOfContents": "İçindekiler tablosu",
     "symbol": "Sembol",
     "help": "Yardım",
-    "reportIssue": "Sorun bildir"
+    "reportIssue": "Sorun bildir",
+    "watermark": "Filigran",
+    "break": null,
+    "sectionBreakContinuous": null,
+    "sectionBreakNextPage": null
   },
   "formattingBar": {
     "groups": {
@@ -77,7 +81,9 @@
     "subscriptShortcut": "Alt simge (Ctrl+=)",
     "imageProperties": "Görsel özellikleri",
     "imagePropertiesShortcut": "Görsel özellikleri (alternatif metin, kenarlık)...",
-    "clearFormatting": "Biçimlendirmeyi temizle"
+    "clearFormatting": "Biçimlendirmeyi temizle",
+    "commentsAndChanges": null,
+    "moreItems": null
   },
   "alignment": {
     "alignLeft": "Sola hizala",
@@ -102,7 +108,8 @@
     "single": "Tek",
     "double": "Çift",
     "lineSpacingTitle": "Satır aralığı: {label}",
-    "paragraphSpacing": "Paragraf aralığı"
+    "paragraphSpacing": "Paragraf aralığı",
+    "label": null
   },
   "styles": {
     "selectAriaLabel": "Paragraf stili seç",
@@ -117,7 +124,8 @@
     "selectAriaLabel": "Yazı tipi ailesini seç",
     "sansSerif": "Sans Serif",
     "serif": "Serif",
-    "monospace": "Eş aralıklı"
+    "monospace": "Eş aralıklı",
+    "other": null
   },
   "fontSize": {
     "decrease": "Yazı tipi boyutunu küçült",
@@ -126,7 +134,10 @@
     "listLabel": "Yazı tipi boyutları"
   },
   "zoom": {
-    "ariaLabel": "Yakınlaştırma: {label}"
+    "ariaLabel": "Yakınlaştırma: {label}",
+    "zoomIn": null,
+    "zoomLevel": null,
+    "zoomOut": null
   },
   "colorPicker": {
     "ariaLabel": "{type} renk seçici",
@@ -531,6 +542,27 @@
       "noResults": "\"{query}\" eşleşen kısayol yok",
       "pressEscToClose": "Kapatmak için {key} tuşuna bas",
       "or": "veya"
+    },
+    "watermark": {
+      "applyButton": "Uygula",
+      "cancelButton": "İptal",
+      "colorLabel": "Renk",
+      "diagonal": "Çapraz",
+      "fontLabel": "Yazı tipi",
+      "horizontal": "Yatay",
+      "layoutLabel": "Düzen",
+      "noWatermark": "Filigran yok",
+      "picture": "Resim filigranı",
+      "presetLabel": "Hazır ayar",
+      "scale": "Ölçek",
+      "selectPicture": "Resim Seç…",
+      "semitransparent": "Yarı saydam",
+      "sizeAuto": "Otomatik",
+      "sizeLabel": "Boyut",
+      "text": "Metin filigranı",
+      "textLabel": "Metin",
+      "title": "Filigran",
+      "washout": "Soluk"
     }
   },
   "comments": {
@@ -817,7 +849,8 @@
   "imageOverlay": {
     "deleteImage": "Görseli sil",
     "imageProperties": "Görsel özellikleri",
-    "rotate": "Döndür"
+    "rotate": "Döndür",
+    "replaceImage": null
   },
   "revisions": {
     "cellDeleted": null,

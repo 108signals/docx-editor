@@ -12,6 +12,7 @@ import type {
   ProposeReplacementOptions,
   ProposeInsertionOptions,
   ProposeDeletionOptions,
+  AcceptChangesOptions,
   BatchReviewOptions,
   BatchResult,
 } from './types';
@@ -110,9 +111,27 @@ export class DocxReviewer {
   // DISCOVER
   // ==========================================================================
 
-  /** Get all tracked changes in the document. */
+  /**
+   * Get all tracked changes in the document. Pass `includeFootnotes` /
+   * `includeEndnotes` in the filter to also report changes inside note bodies
+   * (each such change carries `noteId` / `noteType`).
+   *
+   * The reported `id` is the raw `w:id`, which is unique only within its part
+   * (document.xml / footnotes.xml / endnotes.xml) — it is NOT namespaced across
+   * parts, so the same `id` can appear on a body change and a note change. Use
+   * `noteType` / `noteId` to disambiguate.
+   *
+   * A returned change with `noteId`/`noteType` set can be accepted or rejected
+   * by passing the whole {@link ReviewChange} back to {@link acceptChange} /
+   * {@link rejectChange} (which resolves it inside its footnote/endnote), or in
+   * bulk via {@link acceptAll} / {@link rejectAll} with the matching `include*`
+   * option; the result persists on {@link toBuffer}.
+   */
   getChanges(filter?: ChangeFilter): ReviewChange[] {
-    return getChangesImpl(this.body, filter);
+    return getChangesImpl(this.body, filter, {
+      footnotes: this.doc.package.footnotes,
+      endnotes: this.doc.package.endnotes,
+    });
   }
 
   /** Get all comments with their replies. */
@@ -227,24 +246,42 @@ export class DocxReviewer {
   // RESOLVE
   // ==========================================================================
 
-  /** Accept a tracked change by its revision ID. */
-  acceptChange(id: number): void {
-    acceptChangeImpl(this.body, id);
+  /**
+   * Accept a tracked change. Pass a revision id to accept a change in the
+   * document body, or pass a {@link ReviewChange} from {@link getChanges} to
+   * accept it wherever it lives — a change carrying `noteId`/`noteType` is
+   * resolved inside that footnote/endnote and persists on {@link toBuffer}.
+   *
+   * A bare numeric id targets the body only: a `w:id` is unique only within its
+   * part, so the same id can appear on a body change and a note change. To
+   * resolve a note change pass the whole {@link ReviewChange} (its
+   * `noteId`/`noteType` locate it); a bare id resolves to the body change, if any.
+   */
+  acceptChange(target: number | ReviewChange): void {
+    acceptChangeImpl(this.body, target, this.changeNotes());
   }
 
-  /** Reject a tracked change by its revision ID. */
-  rejectChange(id: number): void {
-    rejectChangeImpl(this.body, id);
+  /** Reject a tracked change. See {@link acceptChange} for body-vs-note targeting. */
+  rejectChange(target: number | ReviewChange): void {
+    rejectChangeImpl(this.body, target, this.changeNotes());
   }
 
-  /** Accept all tracked changes. Returns count accepted. */
-  acceptAll(): number {
-    return acceptAllImpl(this.body);
+  /**
+   * Accept all tracked changes in the body. Pass `{ includeFootnotes,
+   * includeEndnotes }` to also accept changes inside note bodies. Returns count.
+   */
+  acceptAll(opts?: AcceptChangesOptions): number {
+    return acceptAllImpl(this.body, opts, this.changeNotes());
   }
 
-  /** Reject all tracked changes. Returns count rejected. */
-  rejectAll(): number {
-    return rejectAllImpl(this.body);
+  /** Reject all tracked changes. See {@link acceptAll} for the note opt-in. */
+  rejectAll(opts?: AcceptChangesOptions): number {
+    return rejectAllImpl(this.body, opts, this.changeNotes());
+  }
+
+  /** The package's note stores, passed to change ops so note changes resolve. */
+  private changeNotes() {
+    return { footnotes: this.doc.package.footnotes, endnotes: this.doc.package.endnotes };
   }
 
   // ==========================================================================

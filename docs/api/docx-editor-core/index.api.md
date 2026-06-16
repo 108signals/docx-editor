@@ -442,9 +442,11 @@ export type DocxInput = ArrayBuffer | Uint8Array | Blob | File;
 export interface DocxPackage {
     document: DocumentBody;
     endnotes?: Endnote[];
+    endnoteSeparators?: Endnote[];
     fontTable?: FontTable;
     footers?: Map<string, HeaderFooter>;
     footnotes?: Footnote[];
+    footnoteSeparators?: Footnote[];
     headers?: Map<string, HeaderFooter>;
     media?: Map<string, MediaFile>;
     numbering?: NumberingDefinitions;
@@ -529,11 +531,12 @@ export function emuToTwips(emu: number): number;
 
 // @public
 export interface Endnote {
-    content: (Paragraph | Table)[];
+    content: BlockContent[];
     id: number;
     noteType?: 'normal' | 'separator' | 'continuationSeparator' | 'continuationNotice';
     // (undocumented)
     type: 'endnote';
+    verbatimXml?: string;
 }
 
 // @public
@@ -630,11 +633,12 @@ export interface FooterReference {
 
 // @public
 export interface Footnote {
-    content: (Paragraph | Table)[];
+    content: BlockContent[];
     id: number;
     noteType?: 'normal' | 'separator' | 'continuationSeparator' | 'continuationNotice';
     // (undocumented)
     type: 'footnote';
+    verbatimXml?: string;
 }
 
 // @public
@@ -716,10 +720,11 @@ export function hasTemplateVariables(text: string): boolean;
 
 // @public
 export interface HeaderFooter {
-    content: (Paragraph | Table)[];
+    content: BlockContent[];
     hdrFtrType: HeaderFooterType;
     // (undocumented)
     type: 'header' | 'footer';
+    watermark?: Watermark;
 }
 
 // @public
@@ -890,6 +895,9 @@ export function isFontLoaded(fontFamily: string): boolean;
 
 // @public
 export function isFontsLoading(): boolean;
+
+// @public
+export function isGoogleFontsEnabled(): boolean;
 
 // @public
 export function isLineBreak(content: RunContent): boolean;
@@ -1153,6 +1161,10 @@ export interface ParagraphFormatting {
         numId?: number;
         ilvl?: number;
     };
+    numPrFromStyle?: {
+        numId?: number;
+        ilvl?: number;
+    };
     outlineLevel?: number;
     pageBreakBefore?: boolean;
     runProperties?: TextFormatting;
@@ -1389,7 +1401,7 @@ export interface Run {
 }
 
 // @public
-export type RunContent = TextContent | TabContent | BreakContent | SymbolContent | NoteReferenceContent | FieldCharContent | InstrTextContent | SoftHyphenContent | NoBreakHyphenContent | DrawingContent | ShapeContent;
+export type RunContent = TextContent | TabContent | BreakContent | SymbolContent | NoteReferenceContent | NoteRefMarkContent | SeparatorContent | FieldCharContent | InstrTextContent | SoftHyphenContent | NoBreakHyphenContent | DrawingContent | ShapeContent;
 
 // @public
 export function sanitizeVariableName(name: string): string;
@@ -1503,6 +1515,9 @@ export function serializeDocx(doc: Document_2): string;
 
 // @public
 export function serializeSectionProperties(props: SectionProperties | undefined): string;
+
+// @public
+export function setGoogleFontsEnabled(enabled: boolean): void;
 
 // @public
 export interface SetVariableCommand extends BaseCommand {

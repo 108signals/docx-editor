@@ -4,8 +4,14 @@
 
 ```ts
 
+import { EditorState } from 'prosemirror-state';
 import { EditorView } from 'prosemirror-view';
 import { Node as Node_2 } from 'prosemirror-model';
+
+// @public
+export function applyCellSelectionHighlight(pagesContainer: HTMLElement, state: EditorState, options?: {
+    scope?: 'body' | 'header' | 'footer';
+}): void;
 
 // @public
 export function applyFootnotePresentation(blocks: FlowBlock[], displayNumber: number): FlowBlock[];
@@ -74,25 +80,47 @@ export function clickToPositionInParagraph(fragmentHit: FragmentHit): PositionRe
 export function clickToPositionInTableCell(tableCellHit: TableCellHit): number | null;
 
 // @public
+export function clipRectToTableWindow(spanEl: Element, rect: {
+    readonly left: number;
+    readonly top: number;
+    readonly right: number;
+    readonly bottom: number;
+}): {
+    left: number;
+    top: number;
+    right: number;
+    bottom: number;
+} | null;
+
+// @public
 export function collectFootnoteRefs(blocks: FlowBlock[]): Array<{
     footnoteId: number;
     pmPos: number;
 }>;
 
+// @public (undocumented)
+export function columnWidthForSection(config: SectionLayoutConfig): number;
+
 // @public
-export function computeHfCaretRectFromView(view: EditorView, doc?: globalThis.Document): {
+export function computeHfCaretRectFromView(view: EditorView, section: 'header' | 'footer', doc?: globalThis.Document): {
     top: number;
     left: number;
     height: number;
 } | null;
 
 // @public
-export function computeHfSelectionRectsFromView(view: EditorView, doc?: globalThis.Document): Array<{
+export function computeHfSelectionRectsFromView(view: EditorView, section: 'header' | 'footer', doc?: globalThis.Document): Array<{
     top: number;
     left: number;
     width: number;
     height: number;
 }>;
+
+// @public
+export function computePerBlockWidths(blocks: FlowBlock[], initialConfig: SectionLayoutConfig, finalConfig: SectionLayoutConfig): number[];
+
+// @public
+export function contributesToHeaderFooterFlowHeight(block: FlowBlock): boolean;
 
 // @public
 export function convertBorderSpecToLayout(border: {
@@ -147,6 +175,9 @@ export const DEFAULT_PAGE_HEIGHT_PX = 1056;
 // @public
 export const DEFAULT_PAGE_WIDTH_PX = 816;
 
+// @internal
+export function demoteBlockLikeFloatingTables(blocks: FlowBlock[], blockWidths: number[], fallbackWidth: number): void;
+
 // @public
 export function detectTableInsertHover(input: TableInsertHoverInput): TableInsertHoverHit | null;
 
@@ -174,6 +205,32 @@ export interface DomSelectionRect {
     x: number;
     // (undocumented)
     y: number;
+}
+
+// @public
+export function extendMarginsForHeaderFooter(input: ExtendMarginsForHeaderFooterInput): ExtendMarginsForHeaderFooterResult;
+
+// @public (undocumented)
+export interface ExtendMarginsForHeaderFooterInput {
+    bodyBlocks?: FlowBlock[];
+    finalMargins: PageMargins;
+    footers?: Array<HeaderFooterContent | undefined>;
+    headers?: Array<HeaderFooterContent | undefined>;
+    margins: PageMargins;
+    // (undocumented)
+    pageSize: {
+        w: number;
+        h: number;
+    };
+    warn?: (message: string) => void;
+}
+
+// @public (undocumented)
+export interface ExtendMarginsForHeaderFooterResult {
+    // (undocumented)
+    finalMargins: PageMargins;
+    // (undocumented)
+    margins: PageMargins;
 }
 
 // @public
@@ -218,6 +275,7 @@ export interface FloatingExclusionRect {
 export interface FloatingImageZone {
     // (undocumented)
     bottomY: number;
+    fullWidthBlock?: boolean;
     // (undocumented)
     leftMargin: number;
     // (undocumented)
@@ -235,6 +293,9 @@ export interface FloatingLineSegmentZone {
     // (undocumented)
     leftOffset: number;
 }
+
+// @public
+export type FloatPageGeometry = PageGeometry;
 
 // @public
 export interface FontMetrics {
@@ -298,6 +359,9 @@ export function getCaretPosition(layout: Layout, blocks: FlowBlock[], measures: 
 
 // @public (undocumented)
 export function getCaretPositionFromDom(container: HTMLElement, pmPos: number, overlayRect: DOMRect): DomCaretPosition | null;
+
+// @public
+export function getColumns(sectionProps: SectionProperties | null | undefined): ColumnLayout | undefined;
 
 // @public (undocumented)
 export function getFloatingMargins(lineY: number, lineHeight: number, zones: FloatingImageZone[] | undefined, paragraphYOffset: number): FloatingLineMargins;
@@ -404,6 +468,9 @@ export function hitTestTableCell(pageHit: PageHit, blocks: FlowBlock[], measures
 // @public
 export function invalidateHfDomCache(): void;
 
+// @internal
+export function isBlockLikeFloatingTable(block: TableBlock, contentWidth: number): boolean;
+
 // @public
 export function isMultiPageSelection(rects: SelectionRect[]): boolean;
 
@@ -423,7 +490,7 @@ export type MeasureBlockFn = (block: FlowBlock, contentWidth: number, floatingZo
 export type MeasureBlocksFn = (blocks: FlowBlock[], contentWidth: number) => Measure[];
 
 // @public
-export function measureBlocksWithFloats(blocks: FlowBlock[], contentWidth: number | number[], measureBlock: MeasureBlockFn): Measure[];
+export function measureBlocksWithFloats(blocks: FlowBlock[], contentWidth: number | number[], measureBlock: MeasureBlockFn, pageGeometry?: FloatPageGeometry): Measure[];
 
 // @public
 export function measureParagraph(block: ParagraphBlock, maxWidth: number, options?: MeasureParagraphOptions): ParagraphMeasure;
@@ -505,6 +572,23 @@ export function resetBlockIdCounter(): void;
 // @public
 export function resetCanvasContext(): void;
 
+// @internal
+export function resolveCellGrid(tableBlock: TableBlock): ResolvedGridCell[];
+
+// @public
+export interface ResolvedGridCell {
+    // (undocumented)
+    cellIndex: number;
+    // (undocumented)
+    colSpan: number;
+    // (undocumented)
+    columnIndex: number;
+    // (undocumented)
+    rowIndex: number;
+    // (undocumented)
+    rowSpan: number;
+}
+
 // @public
 export function resolveHeaderFooter(doc: Document_2 | null, sp: SectionProperties | null | undefined): {
     header: HeaderFooter | null;
@@ -518,6 +602,12 @@ export function resolveHeaderFooterVisualTop(run: ImageRun, paragraphY: number, 
 
 // @public
 export function resolveListTemplate(template: string, counters: number[], levelNumFmts: NumberFormat[] | undefined): string;
+
+// @internal
+export function resolveTableColumnWidths(tableBlock: TableBlock, contentWidth: number): number[];
+
+// @internal
+export function resolveTableTotalWidthPx(tableBlock: TableBlock, contentWidth: number): number;
 
 // @internal
 export function resolveTableWidthPx(value: number | undefined, widthType: string | undefined, parentWidth: number): number | undefined;
@@ -655,6 +745,9 @@ export type ToFlowBlocksOptions = {
     listCounters?: Map<number, number[]>;
     listSeenNumIds?: Set<string>;
 };
+
+// @public
+export function twipsToPixels(twips: number): number;
 
 // @public
 export function twipsToPx(twips: number): number;

@@ -41,7 +41,11 @@
     "tableOfContents": "Table des matières",
     "symbol": "Symbole",
     "help": "Aide",
-    "reportIssue": "Signaler un bug"
+    "reportIssue": "Signaler un bug",
+    "watermark": "Filigrane",
+    "break": null,
+    "sectionBreakContinuous": null,
+    "sectionBreakNextPage": null
   },
   "formattingBar": {
     "groups": {
@@ -77,7 +81,9 @@
     "subscriptShortcut": "Indice (Ctrl+=)",
     "imageProperties": "Propriétés de l'image",
     "imagePropertiesShortcut": "Propriétés de l'image... (description, bordure)",
-    "clearFormatting": "Effacer la mise en forme"
+    "clearFormatting": "Effacer la mise en forme",
+    "commentsAndChanges": null,
+    "moreItems": null
   },
   "alignment": {
     "alignLeft": "Aligner à gauche",
@@ -102,7 +108,8 @@
     "single": "Simple",
     "double": "Double",
     "lineSpacingTitle": "Interligne : {label}",
-    "paragraphSpacing": "Espacement des paragraphes"
+    "paragraphSpacing": "Espacement des paragraphes",
+    "label": null
   },
   "styles": {
     "selectAriaLabel": "Sélectionner le type de paragraphe",
@@ -117,7 +124,8 @@
     "selectAriaLabel": "Sélectionner une police",
     "sansSerif": "Sans Serif",
     "serif": "Serif",
-    "monospace": "Monospace"
+    "monospace": "Monospace",
+    "other": null
   },
   "fontSize": {
     "decrease": "Diminuer la taille de la police",
@@ -126,7 +134,10 @@
     "listLabel": "Tailles de police"
   },
   "zoom": {
-    "ariaLabel": "Zoom : {label}"
+    "ariaLabel": "Zoom : {label}",
+    "zoomIn": null,
+    "zoomLevel": null,
+    "zoomOut": null
   },
   "colorPicker": {
     "ariaLabel": "Choisir la couleur {type}",
@@ -531,6 +542,27 @@
       "noResults": "Aucun raccourci trouvé pour « {query} »",
       "pressEscToClose": "Appuyez sur {key} pour fermer",
       "or": "ou"
+    },
+    "watermark": {
+      "applyButton": "Appliquer",
+      "cancelButton": "Annuler",
+      "colorLabel": "Couleur",
+      "diagonal": "Diagonale",
+      "fontLabel": "Police",
+      "horizontal": "Horizontale",
+      "layoutLabel": "Disposition",
+      "noWatermark": "Aucun filigrane",
+      "picture": "Filigrane image",
+      "presetLabel": "Prédéfini",
+      "scale": "Échelle",
+      "selectPicture": "Sélectionner une image…",
+      "semitransparent": "Semi-transparent",
+      "sizeAuto": "Auto",
+      "sizeLabel": "Taille",
+      "text": "Filigrane texte",
+      "textLabel": "Texte",
+      "title": "Filigrane",
+      "washout": "Estompé"
     }
   },
   "comments": {
@@ -777,7 +809,8 @@
   "imageOverlay": {
     "rotate": "Faire pivoter",
     "imageProperties": "Propriétés de l'image",
-    "deleteImage": "Supprimer l'image"
+    "deleteImage": "Supprimer l'image",
+    "replaceImage": null
   },
   "ruler": {
     "horizontal": "Règle horizontale",

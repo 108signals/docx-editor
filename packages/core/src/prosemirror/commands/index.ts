@@ -117,8 +117,16 @@ export type { TableContextInfo, BorderPreset } from './table';
 // Page break
 export { insertPageBreak } from './pageBreak';
 
+// Section breaks
+export { insertSectionBreakNextPage, insertSectionBreakContinuous } from './sectionBreak';
+
 // Image commands
-export { setImageWrapType, insertImageNode } from './image';
+export {
+  setImageWrapType,
+  insertImageNode,
+  insertImageFromFile,
+  INSERT_IMAGE_MAX_WIDTH_PX,
+} from './image';
 export type { AnchorWrapType, ImageLayoutTarget, SetImageWrapTypeOptions } from './image';
 
 // Table of Contents
@@ -141,3 +149,6 @@ export {
 // Table split
 export { getSplitCellDialogConfig, splitActiveTableCell } from './tableSplit';
 export type { SplitCellDialogConfig } from './tableSplit';
+
+// Watermark
+export { setWatermark, getWatermarkFromState } from './watermark';

@@ -41,7 +41,11 @@
     "open": "Otwórz",
     "openShortcut": "Ctrl+O",
     "save": "Zapisz",
-    "saveShortcut": "Ctrl+S"
+    "saveShortcut": "Ctrl+S",
+    "watermark": "Znak wodny",
+    "break": null,
+    "sectionBreakContinuous": null,
+    "sectionBreakNextPage": null
   },
   "formattingBar": {
     "groups": {
@@ -77,7 +81,9 @@
     "subscriptShortcut": "Indeks dolny (Ctrl+=)",
     "imageProperties": "Właściwości obrazu",
     "imagePropertiesShortcut": "Właściwości obrazu (tekst alternatywny, obramowanie)...",
-    "clearFormatting": "Wyczyść formatowanie"
+    "clearFormatting": "Wyczyść formatowanie",
+    "commentsAndChanges": null,
+    "moreItems": null
   },
   "alignment": {
     "alignLeft": "Wyrównaj do lewej",
@@ -102,7 +108,8 @@
     "single": "Pojedyncza",
     "double": "Podwójna",
     "lineSpacingTitle": "Interlinia: {label}",
-    "paragraphSpacing": "Odstępy między akapitami"
+    "paragraphSpacing": "Odstępy między akapitami",
+    "label": null
   },
   "styles": {
     "selectAriaLabel": "Wybierz styl akapitu",
@@ -117,7 +124,8 @@
     "selectAriaLabel": "Wybierz rodzinę czcionek",
     "sansSerif": "Sans Serif",
     "serif": "Serif",
-    "monospace": "Monospace"
+    "monospace": "Monospace",
+    "other": null
   },
   "fontSize": {
     "decrease": "Zmniejsz rozmiar czcionki",
@@ -126,7 +134,10 @@
     "listLabel": "Rozmiary czcionek"
   },
   "zoom": {
-    "ariaLabel": "Powiększenie: {label}"
+    "ariaLabel": "Powiększenie: {label}",
+    "zoomIn": null,
+    "zoomLevel": null,
+    "zoomOut": null
   },
   "colorPicker": {
     "ariaLabel": "Próbnik kolorów — {type}",
@@ -531,6 +542,27 @@
       "noResults": "Nie znaleziono skrótów pasujących do \"{query}\"",
       "pressEscToClose": "Naciśnij {key}, aby zamknąć",
       "or": "lub"
+    },
+    "watermark": {
+      "applyButton": "Zastosuj",
+      "cancelButton": "Anuluj",
+      "colorLabel": "Kolor",
+      "diagonal": "Po przekątnej",
+      "fontLabel": "Czcionka",
+      "horizontal": "Poziomo",
+      "layoutLabel": "Układ",
+      "noWatermark": "Bez znaku wodnego",
+      "picture": "Obrazkowy znak wodny",
+      "presetLabel": "Predefiniowany",
+      "scale": "Skala",
+      "selectPicture": "Wybierz obraz…",
+      "semitransparent": "Półprzezroczysty",
+      "sizeAuto": "Auto",
+      "sizeLabel": "Rozmiar",
+      "text": "Tekstowy znak wodny",
+      "textLabel": "Tekst",
+      "title": "Znak wodny",
+      "washout": "Wyblakły"
     }
   },
   "comments": {
@@ -817,7 +849,8 @@
   "imageOverlay": {
     "deleteImage": "Usuń obraz",
     "imageProperties": "Właściwości obrazu",
-    "rotate": "Obróć"
+    "rotate": "Obróć",
+    "replaceImage": null
   },
   "revisions": {
     "cellDeleted": null,

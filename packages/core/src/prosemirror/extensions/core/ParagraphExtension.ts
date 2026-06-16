@@ -23,6 +23,11 @@ import { collectHeadings } from '../../../utils/headingCollector';
 import { createNodeExtension } from '../create';
 import type { ExtensionContext, ExtensionRuntime } from '../types';
 import type { ParagraphAttrs } from '../../schema/nodes';
+import {
+  paragraphAttrsFromResolvedStyle,
+  listAttrsFromResolvedStyle,
+} from '../../styles/resolvedStyleAttrs';
+import type { NumberingMap } from '../../../docx/numberingParser';
 
 // ============================================================================
 // HELPERS (from nodes.ts)
@@ -39,6 +44,11 @@ function paragraphAttrsToDOMStyle(attrs: ParagraphAttrs): string {
     alignment: attrs.alignment,
     spaceBefore: attrs.spaceBefore,
     spaceAfter: attrs.spaceAfter,
+    // HTML-origin auto spacing (w:beforeAutospacing/afterAutospacing) isn't a
+    // tracked PM attr; it rides along on _originalFormatting. Forward it so
+    // paragraphToStyle can render Word's ~14px auto spacing (issue #811).
+    beforeAutospacing: attrs._originalFormatting?.beforeAutospacing,
+    afterAutospacing: attrs._originalFormatting?.afterAutospacing,
     lineSpacing: attrs.lineSpacing,
     lineSpacingRule: attrs.lineSpacingRule,
     indentLeft: indentLeft,
@@ -267,6 +277,7 @@ const paragraphNodeSpec: NodeSpec = {
     indentFirstLine: { default: null },
     hangingIndent: { default: false },
     numPr: { default: null },
+    numPrFromStyle: { default: null },
     listNumFmt: { default: null },
     listIsBullet: { default: null },
     listMarker: { default: null },
@@ -468,6 +479,14 @@ function setParagraphAttrsCmd(attrs: Record<string, unknown>): Command {
 export interface ResolvedStyleAttrs {
   paragraphFormatting?: ParagraphFormatting;
   runFormatting?: TextFormatting;
+  /**
+   * Numbering definitions from the document package. When the applied style
+   * carries a `w:numPr`, these resolve the numbering level into the list
+   * marker attrs (template, per-level formats, counter key) so the painter
+   * renders the style's numbering — e.g. "[Claim 1]" — instead of falling
+   * back to a plain decimal marker.
+   */
+  numbering?: NumberingMap | null;
 }
 
 // ============================================================================
@@ -620,22 +639,16 @@ function makeApplyStyle(schema: Schema) {
             // When applying a style, explicitly reset all style-controlled
             // paragraph attrs to the new style's values (or null to clear).
             // This prevents old style properties (e.g. heading line spacing)
-            // from persisting when switching to a different style.
-            const ppr = resolvedAttrs.paragraphFormatting;
-            newAttrs.alignment = ppr?.alignment ?? null;
-            newAttrs.spaceBefore = ppr?.spaceBefore ?? null;
-            newAttrs.spaceAfter = ppr?.spaceAfter ?? null;
-            newAttrs.lineSpacing = ppr?.lineSpacing ?? null;
-            newAttrs.lineSpacingRule = ppr?.lineSpacingRule ?? null;
-            newAttrs.indentLeft = ppr?.indentLeft ?? null;
-            newAttrs.indentRight = ppr?.indentRight ?? null;
-            newAttrs.indentFirstLine = ppr?.indentFirstLine ?? null;
-            newAttrs.hangingIndent = ppr?.hangingIndent ?? null;
-            newAttrs.contextualSpacing = ppr?.contextualSpacing ?? null;
-            newAttrs.keepNext = ppr?.keepNext ?? null;
-            newAttrs.keepLines = ppr?.keepLines ?? null;
-            newAttrs.pageBreakBefore = ppr?.pageBreakBefore ?? null;
-            newAttrs.outlineLevel = ppr?.outlineLevel ?? null;
+            // from persisting when switching to a different style. The same
+            // projection drives the Enter handler's next-style switch.
+            Object.assign(newAttrs, paragraphAttrsFromResolvedStyle(resolvedAttrs));
+            // A style with `w:numPr` attaches its numbering (numPr + marker
+            // attrs). A style without numbering leaves existing list attrs
+            // untouched — direct numbering survives a style switch in Word.
+            const listAttrs = listAttrsFromResolvedStyle(resolvedAttrs, resolvedAttrs.numbering);
+            if (listAttrs) {
+              Object.assign(newAttrs, listAttrs);
+            }
           }
 
           tr = tr.setNodeMarkup(pos, undefined, newAttrs);

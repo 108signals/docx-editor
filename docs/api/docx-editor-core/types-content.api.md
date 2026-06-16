@@ -9,7 +9,7 @@ export type BlockContent = Paragraph | Table | BlockSdt;
 
 // @public
 export interface BlockSdt {
-    content: (Paragraph | Table)[];
+    content: BlockContent[];
     properties: SdtProperties;
     // (undocumented)
     type: 'blockSdt';
@@ -88,6 +88,9 @@ export interface ComplexField {
 }
 
 // @public
+export const DEFAULT_WATERMARK_PRESETS: readonly string[];
+
+// @public
 export interface Deletion {
     content: (Run | Hyperlink)[];
     info: TrackedChangeInfo;
@@ -112,11 +115,12 @@ export interface DrawingContent {
 
 // @public
 export interface Endnote {
-    content: (Paragraph | Table)[];
+    content: BlockContent[];
     id: number;
     noteType?: 'normal' | 'separator' | 'continuationSeparator' | 'continuationNotice';
     // (undocumented)
     type: 'endnote';
+    verbatimXml?: string;
 }
 
 // @public
@@ -159,11 +163,12 @@ export interface FooterReference {
 
 // @public
 export interface Footnote {
-    content: (Paragraph | Table)[];
+    content: BlockContent[];
     id: number;
     noteType?: 'normal' | 'separator' | 'continuationSeparator' | 'continuationNotice';
     // (undocumented)
     type: 'footnote';
+    verbatimXml?: string;
 }
 
 // @public
@@ -183,10 +188,11 @@ export interface FootnoteProperties {
 
 // @public
 export interface HeaderFooter {
-    content: (Paragraph | Table)[];
+    content: BlockContent[];
     hdrFtrType: HeaderFooterType;
     // (undocumented)
     type: 'header' | 'footer';
+    watermark?: Watermark;
 }
 
 // @public
@@ -415,6 +421,12 @@ export interface NoteReferenceContent {
 }
 
 // @public
+export interface NoteRefMarkContent {
+    // (undocumented)
+    type: 'footnoteRefMark' | 'endnoteRefMark';
+}
+
+// @public
 export type PageOrientation = 'portrait' | 'landscape';
 
 // @public
@@ -446,6 +458,27 @@ export interface ParagraphPropertyChange {
 }
 
 // @public
+export interface PictureWatermark {
+    contentType?: string;
+    data?: Uint8Array;
+    dataUrl?: string;
+    heightEmu?: number;
+    // (undocumented)
+    kind: 'picture';
+    mediaPath?: string;
+    relId?: string;
+    scale: number;
+    washout: boolean;
+    widthEmu?: number;
+}
+
+// @public
+export function pictureWatermarkDisplayEmu(naturalWidthPx: number, naturalHeightPx: number): {
+    widthEmu: number;
+    heightEmu: number;
+} | undefined;
+
+// @public
 export interface PropertyChangeInfo extends TrackedChangeInfo {
     rsid?: string;
 }
@@ -460,7 +493,7 @@ export interface Run {
 }
 
 // @public
-export type RunContent = TextContent | TabContent | BreakContent | SymbolContent | NoteReferenceContent | FieldCharContent | InstrTextContent | SoftHyphenContent | NoBreakHyphenContent | DrawingContent | ShapeContent;
+export type RunContent = TextContent | TabContent | BreakContent | SymbolContent | NoteReferenceContent | NoteRefMarkContent | SeparatorContent | FieldCharContent | InstrTextContent | SoftHyphenContent | NoBreakHyphenContent | DrawingContent | ShapeContent;
 
 // @public
 export interface RunPropertyChange {
@@ -472,23 +505,34 @@ export interface RunPropertyChange {
 }
 
 // @public
+export interface SdtDataBinding {
+    prefixMappings?: string;
+    storeItemID?: string;
+    xpath?: string;
+}
+
+// @public
 export interface SdtProperties {
     alias?: string;
     checked?: boolean;
+    dataBinding?: SdtDataBinding;
     dateFormat?: string;
+    id?: number;
     listItems?: {
         displayText: string;
         value: string;
     }[];
     lock?: 'sdtLocked' | 'contentLocked' | 'sdtContentLocked' | 'unlocked';
     placeholder?: string;
+    rawEndPropertiesXml?: string;
+    rawPropertiesXml?: string;
     sdtType: SdtType;
     showingPlaceholder?: boolean;
     tag?: string;
 }
 
 // @public
-export type SdtType = 'richText' | 'plainText' | 'date' | 'dropdown' | 'comboBox' | 'checkbox' | 'picture' | 'buildingBlockGallery' | 'group' | 'unknown';
+export type SdtType = 'richText' | 'plainText' | 'date' | 'dropDownList' | 'comboBox' | 'checkbox' | 'picture' | 'buildingBlockGallery' | 'group' | 'equation' | 'citation' | 'bibliography' | 'unknown';
 
 // @public
 export interface Section {
@@ -556,6 +600,12 @@ export interface SectionProperties {
 
 // @public
 export type SectionStart = 'continuous' | 'nextPage' | 'oddPage' | 'evenPage' | 'nextColumn';
+
+// @public
+export interface SeparatorContent {
+    // (undocumented)
+    type: 'separator' | 'continuationSeparator';
+}
 
 // @public
 export interface Shape {
@@ -759,6 +809,18 @@ export interface TextContent {
 }
 
 // @public
+export interface TextWatermark {
+    color: string;
+    font: string;
+    fontSize?: number;
+    // (undocumented)
+    kind: 'text';
+    layout: 'diagonal' | 'horizontal';
+    semitransparent: boolean;
+    text: string;
+}
+
+// @public
 export interface TrackedChangeInfo {
     author: string;
     date?: string;
@@ -770,5 +832,8 @@ export type TrackedRunChange = Insertion | Deletion | MoveFrom | MoveTo;
 
 // @public
 export type VerticalAlign = 'top' | 'center' | 'both' | 'bottom';
+
+// @public
+export type Watermark = TextWatermark | PictureWatermark;
 
 ```

@@ -660,14 +660,24 @@
   transition: opacity 0.15s ease;
 }
 
-/* Dotted border on active header area */
-.paged-editor--editing-header .layout-page-header {
-  border-bottom: 1px dotted #4285f4;
+/* While editing one HF region, the sibling region (and the non-edited area)
+   shows a normal arrow, not the double-click "pointer" hint. The active
+   region's `cursor: text` below wins via later source order. */
+.paged-editor--hf-editing .layout-page-header,
+.paged-editor--hf-editing .layout-page-footer {
+  cursor: default;
 }
 
-/* Dotted border on active footer area */
+/* Dotted border on active header area; text caret since it's being edited */
+.paged-editor--editing-header .layout-page-header {
+  border-bottom: 1px dotted #4285f4;
+  cursor: text;
+}
+
+/* Dotted border on active footer area; text caret since it's being edited */
 .paged-editor--editing-footer .layout-page-footer {
   border-top: 1px dotted #4285f4;
+  cursor: text;
 }
 
 /*
@@ -820,4 +830,164 @@
 .ep-revision-prop-change {
   box-shadow: inset 2px 0 0 #5f6368;
   padding-left: 6px;
+}
+
+/* Block-level Structured Document Tag (content control) boundary.
+   The painter lays body fragments as flat absolutely-positioned siblings, so
+   the boundary is a single overlay box per control (see renderSdtBoundaryBoxes)
+   spanning its fragments at content width — drawn as one rounded rectangle
+   like Word, with a corner label chip revealed on hover/focus. The box is
+   non-interactive so it never steals clicks from the editable content under it.
+   Nested controls each draw their own (slightly inset) box. */
+.layout-block-sdt-box {
+  pointer-events: none;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  box-sizing: border-box;
+  transition: border-color 0.1s ease;
+  z-index: 1;
+}
+.layout-block-sdt-box.is-active,
+.layout-block-sdt-box.is-focused {
+  border-color: rgba(25, 103, 210, 0.5);
+}
+/* Corner label chip — hidden until its control is hovered/active. */
+.layout-block-sdt-label {
+  position: absolute;
+  left: -1px;
+  bottom: 100%;
+  max-width: 160px;
+  height: 16px;
+  padding: 0 6px;
+  font-size: 10px;
+  line-height: 16px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #fff;
+  background-color: rgba(25, 103, 210, 0.92);
+  border-radius: 4px 4px 0 0;
+  display: none;
+}
+.layout-block-sdt-box.is-active .layout-block-sdt-label,
+.layout-block-sdt-box.is-focused .layout-block-sdt-label {
+  display: block;
+}
+
+/* Interactive trigger for typed controls (checkbox/dropdown/date). The box is
+   pointer-events:none; the trigger re-enables them so it is clickable. Sits at
+   the top-right corner of the control box. */
+.layout-sdt-widget {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 3px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  line-height: 1;
+  color: #1967d2;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(25, 103, 210, 0.5);
+  border-radius: 3px;
+  cursor: pointer;
+  pointer-events: auto;
+  opacity: 0.55;
+  transition: opacity 0.1s ease;
+}
+.layout-block-sdt-box.is-active .layout-sdt-widget,
+.layout-block-sdt-box.is-focused .layout-sdt-widget,
+.layout-sdt-widget:focus {
+  opacity: 1;
+}
+.layout-sdt-widget:hover {
+  background: #e8f0fe;
+}
+
+.layout-inline-sdt-widget {
+  cursor: pointer;
+  pointer-events: auto;
+  border-radius: 2px;
+  outline-offset: 1px;
+  user-select: none;
+}
+.layout-inline-sdt-widget:hover,
+.layout-inline-sdt-widget:focus {
+  background: #e8f0fe;
+  outline: 1px solid rgba(25, 103, 210, 0.55);
+}
+
+/* Popup for dropdown/date content-control widgets (rendered by the adapter). */
+.layout-sdt-widget-popup {
+  min-width: 120px;
+  max-height: 240px;
+  overflow-y: auto;
+  background: #fff;
+  border: 1px solid #dadce0;
+  border-radius: 6px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.18);
+  padding: 4px;
+  font-size: 13px;
+}
+.layout-sdt-widget-option {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 6px 10px;
+  border: 0;
+  background: transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  color: #202124;
+}
+.layout-sdt-widget-option:hover {
+  background: #e8f0fe;
+}
+.layout-sdt-widget-empty {
+  padding: 6px 10px;
+  color: #5f6368;
+}
+.layout-sdt-widget-date {
+  font: inherit;
+  padding: 4px 6px;
+  border: 1px solid #dadce0;
+  border-radius: 4px;
+}
+.layout-sdt-widget-option.is-selected {
+  font-weight: 600;
+  background: #f1f3f4;
+}
+
+/* Repeating-section item add/remove affordances (bottom-right of the item box). */
+.layout-sdt-repeat-controls {
+  position: absolute;
+  bottom: 1px;
+  right: 1px;
+  display: flex;
+  gap: 2px;
+  opacity: 0.55;
+  pointer-events: none;
+}
+.layout-block-sdt-box.is-active .layout-sdt-repeat-controls,
+.layout-block-sdt-box.is-focused .layout-sdt-repeat-controls {
+  opacity: 1;
+}
+.layout-sdt-repeat-btn {
+  min-width: 16px;
+  height: 16px;
+  padding: 0 3px;
+  font-size: 11px;
+  line-height: 1;
+  color: #1967d2;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(25, 103, 210, 0.5);
+  border-radius: 3px;
+  cursor: pointer;
+  pointer-events: auto;
+}
+.layout-sdt-repeat-btn:hover {
+  background: #e8f0fe;
 }

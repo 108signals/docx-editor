@@ -117,6 +117,37 @@ export {
 } from './agent/text-utils';
 
 // ============================================================================
+// CONTENT CONTROLS (SDT)
+// ============================================================================
+
+export {
+  findContentControls,
+  findContentControl,
+  getContentControlText,
+  setContentControlContent,
+  removeContentControl,
+  ContentControlNotFoundError,
+  ContentControlLockedError,
+  ContentControlTypeError,
+  ContentControlBoundError,
+  type ContentControlFilter,
+  type ContentControlInfo,
+} from './agent/contentControls';
+export {
+  setContentControlValue,
+  formatSdtDate,
+  ContentControlValueError,
+  type ContentControlValue,
+} from './agent/contentControlValues';
+export {
+  addRepeatingSectionItem,
+  removeRepeatingSectionItem,
+  isRepeatingSection,
+  isRepeatingSectionItem,
+  RepeatingSectionError,
+} from './agent/repeatingSection';
+
+// ============================================================================
 // PARSER / SERIALIZER
 // ============================================================================
 
@@ -124,9 +155,10 @@ export { parseDocx } from './docx/parser';
 export {
   serializeDocument as serializeDocx,
   serializeDocumentBody,
-  serializeSectionProperties,
 } from './docx/serializer/documentSerializer';
+export { serializeSectionProperties } from './docx/serializer/sectionPropertiesSerializer';
 export { repackDocx, createDocx, updateMultipleFiles } from './docx/rezip';
+export { getDocumentWatermark, setDocumentWatermark } from './docx/watermarkApi';
 export { attemptSelectiveSave } from './docx/selectiveSave';
 export { buildPatchedDocumentXml, validatePatchSafety } from './docx/selectiveXmlPatch';
 

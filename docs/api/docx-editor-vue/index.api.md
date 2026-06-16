@@ -5,6 +5,9 @@
 ```ts
 
 import { App } from 'vue';
+import { Comment as Comment_2 } from '@eigenpal/docx-editor-core/types/content';
+import { ContentControlFilter } from '@eigenpal/docx-editor-core/agent';
+import { ContentControlValue } from '@eigenpal/docx-editor-core/agent';
 import { createDocumentWithText } from '@eigenpal/docx-editor-core';
 import { createEmptyDocument } from '@eigenpal/docx-editor-core';
 import { CreateEmptyDocumentOptions } from '@eigenpal/docx-editor-core';
@@ -14,10 +17,13 @@ import { default as DocxEditor } from './components/DocxEditor.vue';
 import { DocxInput } from '@eigenpal/docx-editor-core/utils';
 import { EditorHandle } from '@eigenpal/docx-editor-core';
 import { EditorRefLike } from '@eigenpal/docx-editor-agents/bridge';
+import { EditorView } from 'prosemirror-view';
 import { FontDefinition } from '@eigenpal/docx-editor-core/utils';
 import { FontOption } from '@eigenpal/docx-editor-core/utils/fontOptions';
 import { MaybeRef } from 'vue';
 import { Plugin as Plugin_2 } from 'prosemirror-state';
+import { PMContentControl } from '@eigenpal/docx-editor-core/prosemirror';
+import { SelectionState } from '@eigenpal/docx-editor-core/prosemirror';
 import { StyleValue } from 'vue';
 import { TFunction } from '@eigenpal/docx-editor-i18n';
 import { Theme } from '@eigenpal/docx-editor-core/types/document';
@@ -43,7 +49,9 @@ export interface DocxEditorHandle extends EditorHandle {
 
 // @public
 export interface DocxEditorProps {
+    author?: string;
     className?: string;
+    colorMode?: 'light' | 'dark' | 'system';
     disableFindReplaceShortcuts?: boolean;
     document?: Document_2 | null;
     documentBuffer?: DocxInput | null;
@@ -55,9 +63,18 @@ export interface DocxEditorProps {
     i18n?: Translations;
     initialZoom?: number;
     mode?: EditorMode;
+    onChange?: (document: Document_2) => void;
+    onCommentAdd?: (comment: Comment_2) => void;
+    onCommentDelete?: (comment: Comment_2) => void;
+    onCommentReply?: (reply: Comment_2, parent: Comment_2) => void;
+    onCommentResolve?: (comment: Comment_2) => void;
+    onCommentsChange?: (comments: Comment_2[]) => void;
     onDocumentNameChange?: (name: string) => void;
+    onEditorViewReady?: (view: EditorView) => void;
+    onError?: (error: Error) => void;
     onModeChange?: (mode: EditorMode) => void;
     onPrint?: () => void;
+    onSelectionChange?: (state: SelectionState | null) => void;
     readOnly?: boolean;
     renderLogo?: () => VNodeChild;
     renderTitleBarRight?: () => VNodeChild;
@@ -70,6 +87,7 @@ export interface DocxEditorProps {
     style?: StyleValue;
     theme?: Theme | null;
     toolbarExtra?: () => VNodeChild;
+    watermarkPresets?: readonly string[];
 }
 
 // @public
@@ -81,11 +99,26 @@ export type DocxEditorRef = EditorRefLike & {
     focus(): void;
     scrollToPage(pageNumber: number): void;
     scrollToPosition(pmPos: number): void;
+    scrollToCommentId(commentId: number): boolean;
+    scrollToChangeId(revisionId: number): boolean;
+    highlightRange(from: number, to: number): void;
     openPrintPreview(): void;
     print(): void;
     loadDocument(doc: Document_2): void;
     loadDocumentBuffer(buffer: DocxInput): Promise<void>;
     destroy(): void;
+    getContentControls(filter?: ContentControlFilter): PMContentControl[];
+    scrollToContentControl(filter: ContentControlFilter): boolean;
+    setContentControlContent(filter: ContentControlFilter, text: string, options?: {
+        force?: boolean;
+    }): boolean;
+    removeContentControl(filter: ContentControlFilter, options?: {
+        force?: boolean;
+        keepContent?: boolean;
+    }): boolean;
+    setContentControlValue(filter: ContentControlFilter, value: ContentControlValue, options?: {
+        force?: boolean;
+    }): boolean;
 };
 
 // @public (undocumented)

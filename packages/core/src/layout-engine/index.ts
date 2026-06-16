@@ -41,7 +41,11 @@ import {
   hasPageBreakBefore,
 } from './keep-together';
 import { isFloatingTextBoxBlock } from './textBoxFlow';
+import { buildTableRowBreakInfo, snapRowBreak } from './tableRowBreak';
 import { MIN_WRAP_SEGMENT_WIDTH } from '../layout-bridge/measuring/floatingZones';
+import { getParagraphFragmentPmRange } from './paragraphFragmentRange';
+import { balanceTerminalContinuousTextColumns } from './columnBalancing';
+import { getSpacingAfter, getSpacingBefore } from './paragraphSpacing';
 
 // Default page size (US Letter in pixels at 96 DPI)
 const DEFAULT_PAGE_SIZE = { w: 816, h: 1056 };
@@ -105,29 +109,6 @@ export function collectSectionConfigs(
   return { configs, breakIndices };
 }
 
-function isEmptyParagraph(block: ParagraphBlock): boolean {
-  if (block.runs.length === 0) return true;
-  if (block.runs.length !== 1) return false;
-  const r = block.runs[0];
-  return r.kind === 'text' && ((r as { text?: string }).text ?? '') === '';
-}
-
-/**
- * Word collapses style-inherited spacing on empty paragraphs (only direct
- * formatting survives). `spacingExplicit` tracks which side was set inline.
- */
-function getSpacingBefore(block: ParagraphBlock): number {
-  const value = block.attrs?.spacing?.before ?? 0;
-  if (isEmptyParagraph(block) && !block.attrs?.spacingExplicit?.before) return 0;
-  return value;
-}
-
-function getSpacingAfter(block: ParagraphBlock): number {
-  const value = block.attrs?.spacing?.after ?? 0;
-  if (isEmptyParagraph(block) && !block.attrs?.spacingExplicit?.after) return 0;
-  return value;
-}
-
 /**
  * Apply contextual spacing suppression (OOXML §17.3.1.9).
  *
@@ -160,6 +141,18 @@ function applyContextualSpacing(blocks: FlowBlock[]): void {
       // Suppress spaceBefore on next paragraph
       if (nextAttrs.spacing) {
         nextAttrs.spacing = { ...nextAttrs.spacing, before: 0 };
+      }
+    }
+  }
+
+  // Recurse into table cells so contextual spacing is suppressed there too —
+  // measure, row-break, and the painter all read the (mutated) cell paragraph
+  // spacing, so they stay consistent.
+  for (const block of blocks) {
+    if (block.kind !== 'table') continue;
+    for (const row of block.rows) {
+      for (const cell of row.cells) {
+        applyContextualSpacing(cell.blocks);
       }
     }
   }
@@ -324,12 +317,25 @@ export function layoutDocument(
         // Use the NEXT section's columns; for break type, prefer next section's
         // type but fall back to current break's type (preserves explicit 'continuous')
         const nextType = sectionBreakTypes[sectionIdx + 1] ?? sectionBreakTypes[sectionIdx];
-        handleSectionBreak(
-          block as SectionBreakBlock,
-          paginator,
-          sectionConfigs[sectionIdx + 1] ?? initialConfig,
-          nextType
-        );
+        const nextSectionConfig = sectionConfigs[sectionIdx + 1] ?? initialConfig;
+        handleSectionBreak(block as SectionBreakBlock, paginator, nextSectionConfig, nextType);
+
+        const nextBreakIndex = breakIndices[sectionIdx + 1];
+        const isTerminalSection = nextBreakIndex === undefined;
+        if (
+          isTerminalSection &&
+          (nextType ?? 'nextPage') === 'continuous' &&
+          (nextSectionConfig.columns?.count ?? 1) > 1
+        ) {
+          balanceTerminalContinuousTextColumns({
+            blocks,
+            measures,
+            paginator,
+            start: i + 1,
+            end: blocks.length,
+          });
+        }
+
         sectionIdx++;
         break;
       }
@@ -399,9 +405,21 @@ function layoutParagraph(
 
   while (currentLineIndex < lines.length) {
     const state = paginator.getCurrentState();
-    const availableHeight = paginator.getAvailableHeight();
 
-    // Calculate how many lines fit
+    // Reserve the space `addFragment` will consume before this fragment's first
+    // line: `max(spaceBefore, trailingSpacing)` for the first fragment (the
+    // margin collapsed with the previous block's `spacing.after`), nothing for a
+    // continuation fragment (a fresh page/column resets trailing spacing). The
+    // fit loop must budget against the space that actually remains for lines —
+    // otherwise it counts lines that fit WITHOUT the heading's trailing space but
+    // don't fit once `addFragment` adds it, so `ensureFits` punts the WHOLE first
+    // fragment to the next page (a long paragraph after a keepNext heading jumps
+    // wholesale, stranding the heading above a near-full-page gap).
+    const reservedBefore =
+      currentLineIndex === 0 ? Math.max(spaceBefore, state.trailingSpacing) : 0;
+    const availableForLines = paginator.getAvailableHeight() - reservedBefore;
+
+    // Calculate how many lines fit in the space remaining after the reserve.
     let linesHeight = 0;
     let fittingLines = 0;
 
@@ -412,13 +430,7 @@ function layoutParagraph(
       const lineHeight = lines[j].lineHeight + (lines[j].floatSkipBefore ?? 0);
       const totalWithLine = linesHeight + lineHeight;
 
-      // Add space before only for first fragment
-      const withSpacing =
-        currentLineIndex === 0 && j === currentLineIndex
-          ? totalWithLine + spaceBefore
-          : totalWithLine;
-
-      if (withSpacing <= availableHeight || fittingLines === 0) {
+      if (totalWithLine <= availableForLines || fittingLines === 0) {
         linesHeight = totalWithLine;
         fittingLines++;
       } else {
@@ -431,6 +443,12 @@ function layoutParagraph(
     const isLastFragment = currentLineIndex + fittingLines >= lines.length;
     const effectiveSpaceBefore = isFirstFragment ? spaceBefore : 0;
     const effectiveSpaceAfter = isLastFragment ? spaceAfter : 0;
+    const pmRange = getParagraphFragmentPmRange(
+      block,
+      measure,
+      currentLineIndex,
+      currentLineIndex + fittingLines
+    );
 
     const fragment: ParagraphFragment = {
       kind: 'paragraph',
@@ -441,8 +459,8 @@ function layoutParagraph(
       height: linesHeight,
       fromLine: currentLineIndex,
       toLine: currentLineIndex + fittingLines,
-      pmStart: block.pmStart,
-      pmEnd: block.pmEnd,
+      pmStart: pmRange.pmStart,
+      pmEnd: pmRange.pmEnd,
       continuesFromPrev: !isFirstFragment,
       continuesOnNext: !isLastFragment,
     };
@@ -493,6 +511,12 @@ export function getHeaderRowsHeight(measure: TableMeasure, headerRowCount: numbe
 
 /**
  * Layout a table block onto pages.
+ *
+ * Rows are placed in order. A row that doesn't fit in the remaining space is
+ * broken across the page boundary (Word's "allow row to break across pages")
+ * at the deepest whole line that fits — the leftover continues on the next
+ * page. The cursor into the table is `(rowIndex, consumed)` where `consumed`
+ * is how many px of `rowIndex` were already placed on a previous fragment.
  */
 function layoutTable(
   block: TableBlock,
@@ -511,46 +535,76 @@ function layoutTable(
   // Detect header rows (consecutive rows at start with isHeader: true)
   const headerRowCount = countHeaderRows(block);
   const headerRowsHeight = getHeaderRowsHeight(measure, headerRowCount);
+  const breakInfo = buildTableRowBreakInfo(block, measure);
 
-  let currentRowIndex = 0;
+  let rowIndex = 0;
+  let consumed = 0; // px of rows[rowIndex] already placed on a previous fragment
 
-  while (currentRowIndex < rows.length) {
+  while (rowIndex < rows.length) {
     const state = paginator.getCurrentState();
-    const rawAvailableHeight = paginator.getAvailableHeight();
-    const isFirstFragment = currentRowIndex === 0;
+    const isFirstFragment = rowIndex === 0 && consumed === 0;
 
     // Account for trailing spacing from the previous block that addFragment
-    // will consume. We pass spaceBefore=0 for tables, so the overhead is just
-    // trailingSpacing (paginator does max(spaceBefore, trailingSpacing)).
+    // will consume (only the first fragment butts against prior content).
     const pendingSpacing = isFirstFragment ? state.trailingSpacing : 0;
-    const availableHeight = rawAvailableHeight - pendingSpacing;
-
-    // For continuation fragments, we need space for header rows + at least one content row
     const headerOverhead = !isFirstFragment && headerRowCount > 0 ? headerRowsHeight : 0;
+    const availableHeight = paginator.getAvailableHeight() - pendingSpacing - headerOverhead;
 
-    // Calculate how many rows fit (excluding header rows which are prepended separately)
-    let rowsHeight = 0;
-    let fittingRows = 0;
+    const startRow = rowIndex;
+    const topClip = consumed;
+    let used = 0;
+    let cur = rowIndex;
+    // Px of `cur` already placed on a previous fragment. Only the first row of
+    // this fragment can carry one (the rest start at 0); `cur === toRow` holds
+    // at the top of every iteration.
+    const firstRowOffset = consumed;
+    let toRow = rowIndex; // exclusive
+    let bottomClip: number | undefined;
+    let lastRowPartial = false;
 
-    for (let j = currentRowIndex; j < rows.length; j++) {
-      const rowHeight = rows[j].height;
-      const totalWithRow = rowsHeight + rowHeight + headerOverhead;
+    while (cur < rows.length) {
+      const rowHeight = rows[cur].height;
+      const startOff = cur === startRow ? firstRowOffset : 0;
+      const remaining = rowHeight - startOff;
 
-      if (totalWithRow <= availableHeight || fittingRows === 0) {
-        rowsHeight += rowHeight;
-        fittingRows++;
-      } else {
-        break;
+      if (used + remaining <= availableHeight) {
+        // The rest of this row fits whole.
+        used += remaining;
+        cur += 1;
+        toRow = cur;
+        continue;
       }
+
+      // This row does not fully fit in the remaining space. Break it mid-content
+      // at the deepest whole line that fits (Word's "allow row to break across
+      // pages") — this keeps the row's other columns on the page where they
+      // start and flows a tall vertically-merged cell across the boundary.
+      // `w:cantSplit` rows (§17.4.6) never break.
+      const budget = availableHeight - used;
+      const placeable = block.rows[cur]?.cantSplit
+        ? 0
+        : snapRowBreak(breakInfo, cur, startOff, budget);
+      if (placeable > 0) {
+        // Break this row mid-content at a whole-line boundary.
+        used += placeable;
+        toRow = cur + 1;
+        bottomClip = startOff + placeable;
+        lastRowPartial = true;
+      } else if (toRow > startRow) {
+        // Nothing of this row fits, but earlier rows did — end before it.
+      } else {
+        // Fresh fragment and not even one line fits: place the rest of the row
+        // with overflow rather than loop forever (oversized-row guard).
+        used += remaining;
+        toRow = cur + 1;
+      }
+      break;
     }
 
-    // Total fragment height includes header rows for continuation fragments
-    const fragmentHeight = rowsHeight + headerOverhead;
+    // Compute fragment geometry. `used` is the visible window height.
+    const fragmentHeight = headerOverhead + used;
+    const isLastFragment = toRow === rows.length && !lastRowPartial;
 
-    // Create fragment for these rows
-    const isLastFragment = currentRowIndex + fittingRows >= rows.length;
-
-    // Calculate x position based on table justification and indent
     let desiredX = paginator.getColumnX(state.columnIndex);
     if (block.justification === 'center') {
       desiredX = desiredX + (paginator.columnWidth - measure.totalWidth) / 2;
@@ -567,27 +621,37 @@ function layoutTable(
       y: 0, // Will be set by addFragment
       width: measure.totalWidth,
       height: fragmentHeight,
-      fromRow: currentRowIndex,
-      toRow: currentRowIndex + fittingRows,
+      fromRow: startRow,
+      toRow,
       pmStart: block.pmStart,
       pmEnd: block.pmEnd,
       continuesFromPrev: !isFirstFragment,
       continuesOnNext: !isLastFragment,
       headerRowCount: !isFirstFragment && headerRowCount > 0 ? headerRowCount : undefined,
+      topClip: topClip > 0 ? topClip : undefined,
+      bottomClip,
     };
 
     const result = paginator.addFragment(fragment, fragmentHeight, 0, 0);
     fragment.y = result.y;
     fragment.x = desiredX;
 
-    currentRowIndex += fittingRows;
+    // Advance the cursor. A partial last row resumes at its break point
+    // (`bottomClip`); otherwise we move past the rows just placed.
+    if (lastRowPartial) {
+      rowIndex = toRow - 1;
+      consumed = bottomClip ?? 0;
+    } else {
+      rowIndex = toRow;
+      consumed = 0;
+    }
 
-    // If more rows remain, advance to next column/page
-    if (currentRowIndex < rows.length) {
-      // Need space for at least one content row plus repeated header rows
-      const nextRowHeight =
-        rows[currentRowIndex].height + (headerRowCount > 0 ? headerRowsHeight : 0);
-      paginator.ensureFits(nextRowHeight);
+    // If content remains, advance to the next column/page so the next
+    // iteration sees fresh space (the current page is exhausted).
+    if (rowIndex < rows.length) {
+      const nextNeeded =
+        (headerRowCount > 0 ? headerRowsHeight : 0) + (rows[rowIndex].height - consumed);
+      paginator.ensureFits(nextNeeded);
     }
   }
 }
@@ -869,15 +933,31 @@ function handleSectionBreak(
       break;
     }
 
-    case 'continuous':
-      // ECMA-376 §17.6.22: keep current page geometry; defer new size/margins
-      // until the next natural page break. Columns apply immediately below.
-      paginator.updatePageLayout(
-        nextSectionConfig.pageSize,
-        nextSectionConfig.margins,
-        /* applyImmediately */ false
-      );
+    case 'continuous': {
+      // ECMA-376 §17.6.22: a `continuous` break normally keeps the current page
+      // geometry and defers the new size/margins to the next natural page break.
+      // BUT a continuous break that changes page size or orientation cannot
+      // share a physical sheet with the preceding section, so Word and
+      // LibreOffice promote it to a page break. Match that: if the next
+      // section's page size differs from the current page's, force the break.
+      const currentSize = paginator.getCurrentState().page.size;
+      const nextSize = nextSectionConfig.pageSize;
+      const pageSizeChanges =
+        nextSize != null &&
+        (Math.round(nextSize.w) !== Math.round(currentSize.w) ||
+          Math.round(nextSize.h) !== Math.round(currentSize.h));
+      if (pageSizeChanges) {
+        paginator.updatePageLayout(nextSectionConfig.pageSize, nextSectionConfig.margins);
+        paginator.forcePageBreak();
+      } else {
+        paginator.updatePageLayout(
+          nextSectionConfig.pageSize,
+          nextSectionConfig.margins,
+          /* applyImmediately */ false
+        );
+      }
       break;
+    }
   }
 
   // Update column layout for the next section
@@ -910,6 +990,7 @@ export { findPageIndexContainingPmPos } from './findPageIndexContainingPmPos';
 export {
   isFloatingTextBoxBlock,
   floatingTextBoxWrapsText,
+  floatingTextBoxReservesBand,
   type TextBoxFlowAttrs,
 } from './textBoxFlow';
 export { isFloatingWrapType, isWrapNone, wrapsAroundText } from '../docx/wrapTypes';

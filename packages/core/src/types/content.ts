@@ -19,6 +19,8 @@ export type {
   BreakContent,
   SymbolContent,
   NoteReferenceContent,
+  NoteRefMarkContent,
+  SeparatorContent,
   FieldCharContent,
   InstrTextContent,
   SoftHyphenContent,
@@ -84,7 +86,7 @@ export type {
   TableStructuralChangeInfo,
 } from './content/trackedChange';
 
-export type { SdtType, SdtProperties, InlineSdt, BlockSdt } from './content/sdt';
+export type { SdtType, SdtProperties, SdtDataBinding, InlineSdt, BlockSdt } from './content/sdt';
 
 export type { ParagraphContent, Paragraph } from './content/paragraph';
 
@@ -101,6 +103,9 @@ export type {
   Footnote,
   Endnote,
 } from './content/headerFooter';
+
+export type { TextWatermark, PictureWatermark, Watermark } from './content/watermark';
+export { pictureWatermarkDisplayEmu, DEFAULT_WATERMARK_PRESETS } from './content/watermark';
 
 export type {
   PageOrientation,

@@ -52,6 +52,12 @@ function marksToTextFormatting(marks: readonly Mark[]): TextFormatting {
       case 'subscript':
         formatting.vertAlign = 'subscript';
         break;
+      case 'rtl':
+        // Per-run right-to-left flag (`<w:rtl/>`). Without this case, formatting
+        // helpers that route through markUtils (live-edit commands, clipboard)
+        // silently drop run direction for Arabic/Hebrew/etc. text. Fixes #806.
+        formatting.rtl = true;
+        break;
     }
   }
 
@@ -288,6 +294,9 @@ export function textFormattingToMarks(formatting: TextFormatting, schema: Schema
   if (formatting.vertAlign === 'subscript') {
     marks.push(schema.marks.subscript.create());
   }
+  if (formatting.rtl) {
+    marks.push(schema.marks.rtl.create());
+  }
 
   return marks;
 }
@@ -300,7 +309,11 @@ export const clearFormatting: Command = (state, dispatch) => {
 
   if (empty) {
     if (dispatch) {
-      dispatch(state.tr.setStoredMarks([]));
+      // Clear the paragraph's run defaults too, so EmptyParagraphFormatExtension
+      // doesn't re-derive stored marks from them right after the clear.
+      const tr = saveStoredMarksToParagraph(state, state.tr, []);
+      tr.setStoredMarks([]);
+      dispatch(tr);
     }
     return true;
   }

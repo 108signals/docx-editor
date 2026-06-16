@@ -5,6 +5,11 @@
 ```ts
 
 // @public
+export function addRepeatingSectionItem(doc: Document_2, filter: ContentControlFilter, options?: {
+    afterIndex?: number;
+}): Document_2;
+
+// @public
 export type AgentCommand = InsertTextCommand | ReplaceTextCommand | DeleteTextCommand | FormatTextCommand | FormatParagraphCommand | ApplyStyleCommand | InsertTableCommand | InsertImageCommand | InsertHyperlinkCommand | RemoveHyperlinkCommand | InsertParagraphBreakCommand | MergeParagraphsCommand | SplitParagraphCommand | SetVariableCommand | ApplyVariablesCommand;
 
 // @public
@@ -94,6 +99,72 @@ export function buildSelectionContextFromContext(doc: Document_2, range: Range_2
 
 // @public
 export function comparePositions(a: Position_2, b: Position_2): -1 | 0 | 1;
+
+// @public
+export class ContentControlBoundError extends Error {
+    constructor();
+}
+
+// @public
+export interface ContentControlFilter {
+    alias?: string;
+    id?: number;
+    tag?: string;
+    type?: SdtType;
+}
+
+// @public
+export interface ContentControlInfo {
+    alias?: string;
+    checked?: boolean;
+    dataBinding?: SdtDataBinding;
+    dateFormat?: string;
+    depth: number;
+    id?: number;
+    listItems?: {
+        displayText: string;
+        value: string;
+    }[];
+    lock?: SdtProperties['lock'];
+    path: number[];
+    placeholder?: string;
+    sdtType: SdtType;
+    showingPlaceholder?: boolean;
+    tag?: string;
+    text: string;
+}
+
+// @public
+export class ContentControlLockedError extends Error {
+    constructor(lock: SdtProperties['lock'], op: 'edit' | 'remove');
+}
+
+// @public
+export class ContentControlNotFoundError extends Error {
+    constructor(filter: ContentControlFilter);
+}
+
+// @public
+export class ContentControlTypeError extends Error {
+    constructor(sdtType: SdtType);
+}
+
+// @public
+export type ContentControlValue = {
+    kind: 'dropdown';
+    value: string;
+} | {
+    kind: 'checkbox';
+    checked: boolean;
+} | {
+    kind: 'date';
+    date: string;
+};
+
+// @public
+export class ContentControlValueError extends Error {
+    constructor(message: string);
+}
 
 // @public
 export interface ContextSelectionOptions {
@@ -190,12 +261,21 @@ export interface ExtendedSelectionContext extends AgentSelectionContext {
 }
 
 // @public
+export function findContentControl(input: Document_2 | DocumentBody, filter: ContentControlFilter): ContentControlInfo | undefined;
+
+// @public
+export function findContentControls(input: Document_2 | DocumentBody, filter?: ContentControlFilter): ContentControlInfo[];
+
+// @public
 export interface FormatParagraphCommand extends BaseCommand {
     formatting: Partial<ParagraphFormatting>;
     paragraphIndex: number;
     // (undocumented)
     type: 'formatParagraph';
 }
+
+// @public
+export function formatSdtDate(iso: string, pattern?: string): string;
 
 // @public
 export interface FormattedTextSegment {
@@ -240,6 +320,9 @@ export function getBodyText(body: DocumentBody): string;
 
 // @public
 export function getBodyWordCount(body: DocumentBody): number;
+
+// @public
+export function getContentControlText(control: BlockSdt): string;
 
 // @public
 export function getDocumentSummary(doc: Document_2): string;
@@ -368,6 +451,12 @@ export function isPositionInHyperlink(paragraph: Paragraph, offset: number): boo
 export function isPositionInRange(position: Position_2, range: Range_2): boolean;
 
 // @public
+export function isRepeatingSection(props: SdtProperties): boolean;
+
+// @public
+export function isRepeatingSectionItem(props: SdtProperties): boolean;
+
+// @public
 export interface MergeParagraphsCommand extends BaseCommand {
     count: number;
     paragraphIndex: number;
@@ -415,10 +504,24 @@ interface Range_2 {
 export { Range_2 as Range }
 
 // @public
+export function removeContentControl(doc: Document_2, filter: ContentControlFilter, options?: {
+    force?: boolean;
+    keepContent?: boolean;
+}): Document_2;
+
+// @public
 export interface RemoveHyperlinkCommand extends BaseCommand {
     range: Range_2;
     // (undocumented)
     type: 'removeHyperlink';
+}
+
+// @public
+export function removeRepeatingSectionItem(doc: Document_2, filter: ContentControlFilter, index: number): Document_2;
+
+// @public
+export class RepeatingSectionError extends Error {
+    constructor(message: string);
 }
 
 // @public
@@ -451,6 +554,16 @@ export interface SelectionContextOptions {
     includeSuggestions?: boolean;
     maxSuggestions?: number;
 }
+
+// @public
+export function setContentControlContent(doc: Document_2, filter: ContentControlFilter, replacement: string | BlockContent[], options?: {
+    force?: boolean;
+}): Document_2;
+
+// @public
+export function setContentControlValue(doc: Document_2, filter: ContentControlFilter, value: ContentControlValue, options?: {
+    force?: boolean;
+}): Document_2;
 
 // @public
 export interface SetVariableCommand extends BaseCommand {

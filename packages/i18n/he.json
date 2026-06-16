@@ -41,7 +41,11 @@
     "open": "פתיחה",
     "openShortcut": "Ctrl+O",
     "save": "שמירה",
-    "saveShortcut": "Ctrl+S"
+    "saveShortcut": "Ctrl+S",
+    "watermark": "סימן מים",
+    "break": null,
+    "sectionBreakContinuous": null,
+    "sectionBreakNextPage": null
   },
   "formattingBar": {
     "groups": {
@@ -77,7 +81,9 @@
     "subscriptShortcut": "כתב תחתי",
     "imageProperties": "מאפייני תמונה",
     "imagePropertiesShortcut": "מאפייני תמונה",
-    "clearFormatting": "נקה עיצוב"
+    "clearFormatting": "נקה עיצוב",
+    "commentsAndChanges": null,
+    "moreItems": null
   },
   "alignment": {
     "alignLeft": "יישור לשמאל",
@@ -102,7 +108,8 @@
     "single": "יחיד",
     "double": "כפול",
     "lineSpacingTitle": "מרחק בין שורות: {label}",
-    "paragraphSpacing": "מרחק בין פסקאות"
+    "paragraphSpacing": "מרחק בין פסקאות",
+    "label": null
   },
   "styles": {
     "selectAriaLabel": "בחר סגנון פסקה",
@@ -117,7 +124,8 @@
     "selectAriaLabel": "בחר סוג גופן",
     "sansSerif": "Sans Serif",
     "serif": "Serif",
-    "monospace": "Monospace"
+    "monospace": "Monospace",
+    "other": null
   },
   "fontSize": {
     "decrease": "הקטנת גופן",
@@ -126,7 +134,10 @@
     "listLabel": "גדלי גופן"
   },
   "zoom": {
-    "ariaLabel": "זום: {label}"
+    "ariaLabel": "זום: {label}",
+    "zoomIn": null,
+    "zoomLevel": null,
+    "zoomOut": null
   },
   "colorPicker": {
     "ariaLabel": "בחר צבע {type}",
@@ -531,6 +542,27 @@
       "noResults": "לא נמצאו קיצורים עבור \"{query}\"",
       "pressEscToClose": "לחץ {key} כדי לסגור",
       "or": "או"
+    },
+    "watermark": {
+      "applyButton": "החלה",
+      "cancelButton": "ביטול",
+      "colorLabel": "צבע",
+      "diagonal": "אלכסוני",
+      "fontLabel": "גופן",
+      "horizontal": "אופקי",
+      "layoutLabel": "פריסה",
+      "noWatermark": "ללא סימן מים",
+      "picture": "סימן מים תמונה",
+      "presetLabel": "קבוע מראש",
+      "scale": "קנה מידה",
+      "selectPicture": "בחר תמונה…",
+      "semitransparent": "שקוף למחצה",
+      "sizeAuto": "אוטומטי",
+      "sizeLabel": "גודל",
+      "text": "סימן מים טקסט",
+      "textLabel": "טקסט",
+      "title": "סימן מים",
+      "washout": "דהוי"
     }
   },
   "comments": {
@@ -817,7 +849,8 @@
   "imageOverlay": {
     "deleteImage": "מחק תמונה",
     "imageProperties": "מאפייני תמונה",
-    "rotate": "סובב"
+    "rotate": "סובב",
+    "replaceImage": null
   },
   "revisions": {
     "cellDeleted": null,

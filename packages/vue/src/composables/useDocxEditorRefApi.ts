@@ -21,12 +21,32 @@ import type { Comment } from '@eigenpal/docx-editor-core/types/content';
 import type { DocxInput } from '@eigenpal/docx-editor-core/utils';
 import type { Layout } from '@eigenpal/docx-editor-core/layout-engine';
 import { findPageIndexContainingPmPos } from '@eigenpal/docx-editor-core/layout-engine';
+import { renderAllPagesNow } from '@eigenpal/docx-editor-core/layout-painter';
+import {
+  findContentControlsInPM,
+  findContentControlPos,
+  setContentControlContentTr,
+  removeContentControlTr,
+  setContentControlValueTr,
+  type PMContentControl,
+} from '@eigenpal/docx-editor-core/prosemirror';
+import {
+  ContentControlNotFoundError,
+  type ContentControlFilter,
+  type ContentControlValue,
+} from '@eigenpal/docx-editor-core/agent';
 import {
   findInDocument as findInDocumentImpl,
   getSelectionInfo as getSelectionInfoImpl,
   getPageContent as getPageContentImpl,
 } from '../utils/refApiQueries';
-import { findParaIdRange } from '../utils/paraTextHelpers';
+import { findParaIdRange } from '@eigenpal/docx-editor-core/prosemirror/paraText';
+import {
+  findCommentRange,
+  findChangeRange,
+  clampRangeToDoc,
+} from '@eigenpal/docx-editor-core/prosemirror/queries';
+import { TextSelection } from 'prosemirror-state';
 import type { DocxEditorRef } from '../components/DocxEditor/types';
 import type { ApplyFormattingOptions } from './useFormattingActions';
 
@@ -62,6 +82,10 @@ export interface UseDocxEditorRefApiOptions {
   }) => boolean;
   applyFormatting: (options: ApplyFormattingOptions) => boolean;
   setParagraphStyle: (options: { paraId: string; styleId: string }) => boolean;
+  insertBreak: (options: {
+    paraId: string;
+    type: 'page' | 'sectionNextPage' | 'sectionContinuous';
+  }) => boolean;
   scrollVisiblePositionIntoView: (pmPos: number) => void;
   // Subscriber sets (used by onContentChange / onSelectionChange)
   contentChangeSubscribers: Set<(document: unknown) => void>;
@@ -74,6 +98,10 @@ export function useDocxEditorRefApi(opts: UseDocxEditorRefApiOptions): {
   exposed: DocxEditorRef;
 } {
   function print() {
+    // Virtualization keeps off-screen pages as empty shells. Without this
+    // they print as blank pages past the visible band (issue #579).
+    const pagesEl = opts.pagesRef.value;
+    if (pagesEl) renderAllPagesNow(pagesEl);
     opts.onPrint?.();
     window.print();
   }
@@ -148,6 +176,106 @@ export function useDocxEditorRefApi(opts: UseDocxEditorRefApiOptions): {
     return opts.comments.value;
   }
 
+  function getContentControls(filter?: ContentControlFilter): PMContentControl[] {
+    const view = opts.editorView.value;
+    return view ? findContentControlsInPM(view.state.doc, filter ?? {}) : [];
+  }
+
+  function scrollToContentControl(filter: ContentControlFilter): boolean {
+    const view = opts.editorView.value;
+    if (!view) return false;
+    const pos = findContentControlPos(view.state.doc, filter);
+    if (pos == null) return false;
+    scrollToPosition(pos);
+    return true;
+  }
+
+  // Select `[from, to]` so the selection overlay highlights it, then scroll the
+  // start into view. Shared by the three location-reveal methods below; mirrors
+  // React's hiddenPM.setSelection + paraId-scroll path.
+  function selectAndReveal(view: EditorView, from: number, to: number): void {
+    const sel = TextSelection.between(view.state.doc.resolve(from), view.state.doc.resolve(to));
+    view.dispatch(view.state.tr.setSelection(sel));
+    opts.scrollVisiblePositionIntoView(from);
+  }
+
+  function highlightRange(from: number, to: number): void {
+    const view = opts.editorView.value;
+    if (!view) return;
+    // Raw caller positions: clampRangeToDoc returns null for a malformed or
+    // out-of-range request (no-op) and clamps `to` to the document size so
+    // doc.resolve() can't throw.
+    const range = clampRangeToDoc(view.state.doc, from, to);
+    if (!range) return;
+    selectAndReveal(view, range.from, range.to);
+  }
+
+  function scrollToCommentId(commentId: number): boolean {
+    const view = opts.editorView.value;
+    if (!view) return false;
+    const range = findCommentRange(view, commentId);
+    if (!range) return false;
+    selectAndReveal(view, range.from, range.to);
+    return true;
+  }
+
+  function scrollToChangeId(revisionId: number): boolean {
+    const view = opts.editorView.value;
+    if (!view) return false;
+    const range = findChangeRange(view, revisionId);
+    if (!range) return false;
+    selectAndReveal(view, range.from, range.to);
+    return true;
+  }
+
+  function setContentControlContent(
+    filter: ContentControlFilter,
+    text: string,
+    options?: { force?: boolean }
+  ): boolean {
+    const view = opts.editorView.value;
+    if (!view) return false;
+    try {
+      view.dispatch(setContentControlContentTr(view.state, filter, text, options));
+      return true;
+    } catch (err) {
+      // Not-found is a soft miss; a lock refusal surfaces to the caller.
+      if (err instanceof ContentControlNotFoundError) return false;
+      throw err;
+    }
+  }
+
+  function removeContentControl(
+    filter: ContentControlFilter,
+    options?: { force?: boolean; keepContent?: boolean }
+  ): boolean {
+    const view = opts.editorView.value;
+    if (!view) return false;
+    try {
+      view.dispatch(removeContentControlTr(view.state, filter, options));
+      return true;
+    } catch (err) {
+      if (err instanceof ContentControlNotFoundError) return false;
+      throw err;
+    }
+  }
+
+  function setContentControlValue(
+    filter: ContentControlFilter,
+    value: ContentControlValue,
+    options?: { force?: boolean }
+  ): boolean {
+    const view = opts.editorView.value;
+    if (!view) return false;
+    try {
+      view.dispatch(setContentControlValueTr(view.state, filter, value, options));
+      return true;
+    } catch (err) {
+      if (err instanceof ContentControlNotFoundError) return false;
+      throw err;
+    }
+  }
+
   function getPageContent(pageNumber: number) {
     return getPageContentImpl(opts.editorView.value, opts.layout.value, pageNumber);
   }
@@ -182,11 +310,20 @@ export function useDocxEditorRefApi(opts: UseDocxEditorRefApiOptions): {
     resolveComment: opts.resolveComment,
     proposeChange: opts.proposeChange,
     scrollToParaId,
+    scrollToCommentId,
+    scrollToChangeId,
+    highlightRange,
     findInDocument,
     getSelectionInfo,
     getComments,
+    getContentControls,
+    scrollToContentControl,
+    setContentControlContent,
+    removeContentControl,
+    setContentControlValue,
     applyFormatting: opts.applyFormatting,
     setParagraphStyle: opts.setParagraphStyle,
+    insertBreak: opts.insertBreak,
     getPageContent,
     getTotalPages,
     getCurrentPage,

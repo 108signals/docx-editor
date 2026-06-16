@@ -41,7 +41,11 @@
     "open": "Öffnen",
     "openShortcut": "Strg+O",
     "save": "Speichern",
-    "saveShortcut": "Strg+S"
+    "saveShortcut": "Strg+S",
+    "watermark": "Wasserzeichen",
+    "break": null,
+    "sectionBreakContinuous": null,
+    "sectionBreakNextPage": null
   },
   "formattingBar": {
     "groups": {
@@ -77,7 +81,9 @@
     "subscriptShortcut": "Tiefgestellt (Strg+=)",
     "imageProperties": "Bildeigenschaften",
     "imagePropertiesShortcut": "Bildeigenschaften (Alternativtext, Rahmen)...",
-    "clearFormatting": "Formatierung löschen"
+    "clearFormatting": "Formatierung löschen",
+    "commentsAndChanges": "Kommentare & Änderungen",
+    "moreItems": "{count, plural, one {# weiteres Element} other {# weitere Elemente}}"
   },
   "alignment": {
     "alignLeft": "Linksbündig",
@@ -102,7 +108,8 @@
     "single": "Einfach",
     "double": "Doppelt",
     "lineSpacingTitle": "Zeilenabstand: {label}",
-    "paragraphSpacing": "Absatzabstand"
+    "paragraphSpacing": "Absatzabstand",
+    "label": "Zeilenabstand"
   },
   "styles": {
     "selectAriaLabel": "Absatzformatvorlage auswählen",
@@ -117,7 +124,8 @@
     "selectAriaLabel": "Schriftart auswählen",
     "sansSerif": "Sans Serif",
     "serif": "Serif",
-    "monospace": "Monospace"
+    "monospace": "Monospace",
+    "other": "Andere"
   },
   "fontSize": {
     "decrease": "Schriftgrad verkleinern",
@@ -126,7 +134,10 @@
     "listLabel": "Schriftgrade"
   },
   "zoom": {
-    "ariaLabel": "Zoom: {label}"
+    "ariaLabel": "Zoom: {label}",
+    "zoomIn": "Vergrößern",
+    "zoomLevel": "Zoomstufe",
+    "zoomOut": "Verkleinern"
   },
   "colorPicker": {
     "ariaLabel": "Farbauswahl — {type}",
@@ -531,6 +542,27 @@
       "noResults": "Keine Tastenkombinationen für \"{query}\" gefunden",
       "pressEscToClose": "{key} drücken, um zu schließen",
       "or": "oder"
+    },
+    "watermark": {
+      "applyButton": "Übernehmen",
+      "cancelButton": "Abbrechen",
+      "colorLabel": "Farbe",
+      "diagonal": "Diagonal",
+      "fontLabel": "Schriftart",
+      "horizontal": "Horizontal",
+      "layoutLabel": "Layout",
+      "noWatermark": "Kein Wasserzeichen",
+      "picture": "Bildwasserzeichen",
+      "presetLabel": "Vorlage",
+      "scale": "Skalierung",
+      "selectPicture": "Bild auswählen …",
+      "semitransparent": "Halbtransparent",
+      "sizeAuto": "Automatisch",
+      "sizeLabel": "Größe",
+      "text": "Textwasserzeichen",
+      "textLabel": "Text",
+      "title": "Wasserzeichen",
+      "washout": "Auswaschen"
     }
   },
   "comments": {
@@ -817,7 +849,8 @@
   "imageOverlay": {
     "deleteImage": "Bild löschen",
     "imageProperties": "Bildeigenschaften",
-    "rotate": "Drehen"
+    "rotate": "Drehen",
+    "replaceImage": "Bild ersetzen…"
   },
   "revisions": {
     "cellDeleted": null,

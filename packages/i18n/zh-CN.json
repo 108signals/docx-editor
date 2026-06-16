@@ -41,7 +41,11 @@
     "tableOfContents": "目录",
     "symbol": "符号",
     "help": "帮助",
-    "reportIssue": "反馈问题"
+    "reportIssue": "反馈问题",
+    "watermark": "水印",
+    "break": null,
+    "sectionBreakContinuous": null,
+    "sectionBreakNextPage": null
   },
   "formattingBar": {
     "groups": {
@@ -77,7 +81,9 @@
     "subscriptShortcut": "下标(Ctrl+=)",
     "imageProperties": "图片属性",
     "imagePropertiesShortcut": "图片属性(替代文本、边框)...",
-    "clearFormatting": "清除格式"
+    "clearFormatting": "清除格式",
+    "commentsAndChanges": null,
+    "moreItems": null
   },
   "alignment": {
     "alignLeft": "左对齐",
@@ -102,7 +108,8 @@
     "single": "单倍行距",
     "double": "双倍行距",
     "lineSpacingTitle": "行距: {label}",
-    "paragraphSpacing": "段间距"
+    "paragraphSpacing": "段间距",
+    "label": null
   },
   "styles": {
     "selectAriaLabel": "选择段落样式",
@@ -117,7 +124,8 @@
     "selectAriaLabel": "选择字体",
     "sansSerif": "Sans Serif",
     "serif": "Serif",
-    "monospace": "Monospace"
+    "monospace": "Monospace",
+    "other": null
   },
   "fontSize": {
     "decrease": "减小字号",
@@ -126,7 +134,10 @@
     "listLabel": "字号列表"
   },
   "zoom": {
-    "ariaLabel": "缩放: {label}"
+    "ariaLabel": "缩放: {label}",
+    "zoomIn": null,
+    "zoomLevel": null,
+    "zoomOut": null
   },
   "colorPicker": {
     "ariaLabel": "{type} 颜色选择器",
@@ -531,6 +542,27 @@
       "noResults": "未找到与 \"{query}\" 匹配的快捷方式",
       "pressEscToClose": "按 {key} 关闭",
       "or": "或"
+    },
+    "watermark": {
+      "applyButton": "应用",
+      "cancelButton": "取消",
+      "colorLabel": "颜色",
+      "diagonal": "斜式",
+      "fontLabel": "字体",
+      "horizontal": "水平",
+      "layoutLabel": "版式",
+      "noWatermark": "无水印",
+      "picture": "图片水印",
+      "presetLabel": "预设",
+      "scale": "缩放",
+      "selectPicture": "选择图片…",
+      "semitransparent": "半透明",
+      "sizeAuto": "自动",
+      "sizeLabel": "大小",
+      "text": "文字水印",
+      "textLabel": "文字",
+      "title": "水印",
+      "washout": "冲蚀"
     }
   },
   "comments": {
@@ -817,7 +849,8 @@
   "imageOverlay": {
     "deleteImage": "删除图片",
     "imageProperties": "图片属性",
-    "rotate": "旋转"
+    "rotate": "旋转",
+    "replaceImage": null
   },
   "revisions": {
     "cellDeleted": null,

@@ -66,6 +66,8 @@ Before merging a change in `packages/react/`:
 
 Adapter-only changes are fine for things genuinely scoped to one framework (React-specific hook glue, Vue composition API ergonomics, the demo apps). When in doubt, mirror.
 
+**UI styling / colors are single-source-of-truth.** All editor chrome CSS + color tokens live in `packages/core/src/styles/editor.css`; both adapters only `@import` it (the adapter `src/styles/editor.css` files must stay thin — enforced by `bun run check:adapter-css-thin`). Never hardcode hex/rgba in components — use the `--doc-*` tokens (or shadcn token utilities like `bg-primary`). The shared Tailwind theme lives in `packages/core/tailwind-preset.cjs`, extended by all three `tailwind.config.js`. Dark mode is a token override under `.ep-root.dark` (scaffold in the core stylesheet). The document canvas (painter output) is intentionally NOT themed — it stays Word-faithful.
+
 ### FlowBlock invariant — 3 switches
 
 Adding a `FlowBlock` variant in `packages/core/src/layout-engine/types.ts` requires updating all three; each ends with `assertExhaustiveFlowBlock` so `bun run typecheck` names the missing site:
@@ -85,35 +87,53 @@ Stable dataset attrs on painted DOM (CSS, queries, selection map depend on these
 - `data-change-author`/`data-change-date`/`data-revision-id` — tracked changes
 - `data-continues-from-prev`/`data-continues-on-next` — split paragraphs
 - `data-flex-line` — flex-promoted lines (image-aligned, right-tab); `renderParagraphFragment` suppresses `text-indent` on these (would apply per-flex-item)
+- `data-vmerge-continuation` — synthetic slice of a vertically-merged cell re-painted on a continuation page (not selectable); `.layout-table-cut-border` — the horizontal rule that closes a table fragment at a page break. Tables split across pages via `TableFragment.fromRow/toRow` + `topClip`/`bottomClip` (mid-content row break).
 
 ### Key file map
 
-| Debugging                   | File                                                            |
-| --------------------------- | --------------------------------------------------------------- |
-| Text/paragraph rendering    | `layout-painter/renderParagraph.ts`                             |
-| Image rendering             | `layout-painter/renderImage.ts`                                 |
-| Table rendering             | `layout-painter/renderTable.ts`                                 |
-| Page composition            | `layout-painter/renderPage.ts`                                  |
-| Formatting commands         | `prosemirror/extensions/marks/`, `nodes/`                       |
-| Keyboard shortcuts          | `prosemirror/extensions/features/BaseKeymapExtension.ts`        |
-| Toolbar ↔ selection         | `prosemirror/plugins/selectionTracker.ts`                       |
-| DOCX XML parsers            | `docx/paragraphParser.ts`, `docx/tableParser.ts`                |
-| Document → PM               | `prosemirror/conversion/toProseDoc.ts`                          |
-| Click → PM position         | `components/DocxEditor/hooks/usePagesPointer.ts`                |
-| Selection rects / caret     | `components/DocxEditor/hooks/useSelectionOverlay.ts`            |
-| HF persistent PMs           | `components/DocxEditor/HiddenHeaderFooterPMs.tsx`               |
-| HF caret in painter         | `components/DocxEditor/DocxEditorPagedArea.tsx` (`hfCaretRect`) |
-| HF inline chrome            | `components/InlineHeaderFooterEditor.tsx`                       |
-| Layout pipeline             | `components/DocxEditor/hooks/useLayoutPipeline.ts`              |
-| Scroll API                  | `components/DocxEditor/hooks/usePagedScrollApi.ts`              |
-| Image resize/drag           | `components/DocxEditor/hooks/useImageInteractions.ts`           |
-| Font/HF reflow triggers     | `components/DocxEditor/hooks/useLayoutTriggers.ts`              |
-| Table resize                | `components/DocxEditor/hooks/useTableResizeState.ts`            |
-| Measure-block cache         | `components/DocxEditor/internals/measureBlock.ts`               |
-| Sidebar comment Y positions | `components/DocxEditor/internals/sidebarAnchorPositions.ts`     |
-| PM position → DOM           | `components/DocxEditor/internals/pmAnchors.ts`                  |
-| Main toolbar                | `components/Toolbar.tsx`                                        |
-| Editor CSS                  | `prosemirror/editor.css`                                        |
+| Debugging                    | File                                                            |
+| ---------------------------- | --------------------------------------------------------------- |
+| Text/paragraph rendering     | `layout-painter/renderParagraph.ts`                             |
+| Image rendering              | `layout-painter/renderImage.ts`                                 |
+| Table rendering              | `layout-painter/renderTable.ts`                                 |
+| Table borders / cut edges    | `layout-painter/renderTableBorders.ts`                          |
+| Table grid geometry (SoT)    | `layout-bridge/tableWidthUtils.ts` (`resolveCellGrid`)          |
+| Table page-break geometry    | `layout-engine/tableRowBreak.ts`                                |
+| Page composition             | `layout-painter/renderPage.ts`                                  |
+| Formatting commands          | `prosemirror/extensions/marks/`, `nodes/`                       |
+| Keyboard shortcuts           | `prosemirror/extensions/features/BaseKeymapExtension.ts`        |
+| Toolbar ↔ selection          | `prosemirror/plugins/selectionTracker.ts`                       |
+| DOCX XML parsers             | `docx/paragraphParser.ts`, `docx/tableParser.ts`                |
+| Document → PM                | `prosemirror/conversion/toProseDoc.ts`                          |
+| Click → PM position          | `components/DocxEditor/hooks/usePagesPointer.ts`                |
+| Selection rects / caret      | `components/DocxEditor/hooks/useSelectionOverlay.ts`            |
+| HF persistent PMs            | `components/DocxEditor/HiddenHeaderFooterPMs.tsx`               |
+| HF caret in painter          | `components/DocxEditor/DocxEditorPagedArea.tsx` (`hfCaretRect`) |
+| HF inline chrome             | `components/InlineHeaderFooterEditor.tsx`                       |
+| Layout pipeline              | `components/DocxEditor/hooks/useLayoutPipeline.ts`              |
+| Scroll API                   | `components/DocxEditor/hooks/usePagedScrollApi.ts`              |
+| Image resize/drag            | `components/DocxEditor/hooks/useImageInteractions.ts`           |
+| Font/HF reflow triggers      | `components/DocxEditor/hooks/useLayoutTriggers.ts`              |
+| Table resize                 | `components/DocxEditor/hooks/useTableResizeState.ts`            |
+| Measure-block cache          | `components/DocxEditor/internals/measureBlock.ts`               |
+| Sidebar comment Y positions  | `components/DocxEditor/internals/sidebarAnchorPositions.ts`     |
+| PM position → DOM            | `components/DocxEditor/internals/pmAnchors.ts`                  |
+| Main toolbar                 | `components/Toolbar.tsx`                                        |
+| Document/PM CSS              | `prosemirror/editor.css`                                        |
+| UI chrome CSS + color tokens | `packages/core/src/styles/editor.css` (SINGLE SOURCE OF TRUTH)  |
+
+Shared React/Vue orchestration lives in core (issue #696, Tier 1) — adapters re-export or delegate, so grepping an adapter lands on a thin wrapper:
+
+| Shared op                           | Core module (in `@eigenpal/docx-editor-core`) |
+| ----------------------------------- | --------------------------------------------- |
+| paraId/text helpers                 | `prosemirror/paraText.ts`                     |
+| ref-API queries (find/selInfo/page) | `prosemirror/queries.ts`                      |
+| agent applyFormatting/setParaStyle  | `prosemirror/applyFormatting.ts`              |
+| comment/proposeChange + ID alloc    | `prosemirror/commentOps.ts`                   |
+| table-resize read/commit + twips    | `prosemirror/tableResize.ts`                  |
+| image resize/drag PM commits        | `prosemirror/imageCommit.ts`                  |
+| cell-selection highlight            | `layout-bridge/cellSelectionHighlight.ts`     |
+| drag auto-scroll delta math         | `utils/autoScroll.ts`                         |
 
 ### Extensions
 
@@ -127,6 +147,10 @@ Stable dataset attrs on painted DOM (CSS, queries, selection map depend on these
 - **No `require()`** — ESM only.
 
 OOXML reference: `reference/quick-ref/wordprocessingml.md`, `themes-colors.md`; schemas in `reference/ecma-376/part1/schemas/`. PDFs in `reference/ecma-376/` are gitignored — run `bun run reference:fetch` once when you need them.
+
+Website docs (docx-editor.dev/docs/1.x) are authored here in `docs/site/content/` (MDX) and synced by the site repo at build time — see `docs/site/README.md` for the authoring contract. Feature-support claims live in `docs/site/data/word-features.ts` (typed matrix), never hand-written in prose. A feature PR that changes user-visible behavior should update both in the same PR.
+
+**Nav gotcha — two meta.json files must agree.** The sidebar/overview is driven by the `"root": true` `docs/site/content/meta.json`, which lists pages with their full path (e.g. `guides/dark-mode`). Each subfolder also has its own `meta.json` (e.g. `guides/meta.json`). Adding a new page (especially a guide) means registering it in BOTH — a page present only in the nested meta is reachable by URL but missing from the sidebar/overview. When you add an MDX file under a subfolder, add its path to the root `meta.json` too.
 
 ---
 

@@ -5,6 +5,11 @@
 ```ts
 
 // @public
+export function addRepeatingSectionItem(doc: Document_2, filter: ContentControlFilter, options?: {
+    afterIndex?: number;
+}): Document_2;
+
+// @public
 export type AgentCommand = InsertTextCommand | ReplaceTextCommand | DeleteTextCommand | FormatTextCommand | FormatParagraphCommand | ApplyStyleCommand | InsertTableCommand | InsertImageCommand | InsertHyperlinkCommand | RemoveHyperlinkCommand | InsertParagraphBreakCommand | MergeParagraphsCommand | SplitParagraphCommand | SetVariableCommand | ApplyVariablesCommand;
 
 // @public
@@ -136,6 +141,72 @@ export interface CommentRangeStart {
 
 // @public
 export function comparePositions(a: Position_2, b: Position_2): -1 | 0 | 1;
+
+// @public
+export class ContentControlBoundError extends Error {
+    constructor();
+}
+
+// @public
+export interface ContentControlFilter {
+    alias?: string;
+    id?: number;
+    tag?: string;
+    type?: SdtType;
+}
+
+// @public
+export interface ContentControlInfo {
+    alias?: string;
+    checked?: boolean;
+    dataBinding?: SdtDataBinding;
+    dateFormat?: string;
+    depth: number;
+    id?: number;
+    listItems?: {
+        displayText: string;
+        value: string;
+    }[];
+    lock?: SdtProperties['lock'];
+    path: number[];
+    placeholder?: string;
+    sdtType: SdtType;
+    showingPlaceholder?: boolean;
+    tag?: string;
+    text: string;
+}
+
+// @public
+export class ContentControlLockedError extends Error {
+    constructor(lock: SdtProperties['lock'], op: 'edit' | 'remove');
+}
+
+// @public
+export class ContentControlNotFoundError extends Error {
+    constructor(filter: ContentControlFilter);
+}
+
+// @public
+export class ContentControlTypeError extends Error {
+    constructor(sdtType: SdtType);
+}
+
+// @public
+export type ContentControlValue = {
+    kind: 'dropdown';
+    value: string;
+} | {
+    kind: 'checkbox';
+    checked: boolean;
+} | {
+    kind: 'date';
+    date: string;
+};
+
+// @public
+export class ContentControlValueError extends Error {
+    constructor(message: string);
+}
 
 // @public
 export interface ContextSelectionOptions {
@@ -309,9 +380,11 @@ export function documentHasVariables(doc: Document_2): boolean;
 export interface DocxPackage {
     document: DocumentBody;
     endnotes?: Endnote[];
+    endnoteSeparators?: Endnote[];
     fontTable?: FontTable;
     footers?: Map<string, HeaderFooter>;
     footnotes?: Footnote[];
+    footnoteSeparators?: Footnote[];
     headers?: Map<string, HeaderFooter>;
     media?: Map<string, MediaFile>;
     numbering?: NumberingDefinitions;
@@ -340,11 +413,12 @@ export function emuToTwips(emu: number): number;
 
 // @public
 export interface Endnote {
-    content: (Paragraph | Table)[];
+    content: BlockContent[];
     id: number;
     noteType?: 'normal' | 'separator' | 'continuationSeparator' | 'continuationNotice';
     // (undocumented)
     type: 'endnote';
+    verbatimXml?: string;
 }
 
 // @public
@@ -368,12 +442,19 @@ export interface ExtendedSelectionContext extends SelectionContext {
 export function extractVariablesFromText(text: string): string[];
 
 // @public
+export function findContentControl(input: Document_2 | DocumentBody, filter: ContentControlFilter): ContentControlInfo | undefined;
+
+// @public
+export function findContentControls(input: Document_2 | DocumentBody, filter?: ContentControlFilter): ContentControlInfo[];
+
+// @public
 export interface Footnote {
-    content: (Paragraph | Table)[];
+    content: BlockContent[];
     id: number;
     noteType?: 'normal' | 'separator' | 'continuationSeparator' | 'continuationNotice';
     // (undocumented)
     type: 'footnote';
+    verbatimXml?: string;
 }
 
 // @public
@@ -386,6 +467,9 @@ export interface FormatParagraphCommand extends BaseCommand {
 
 // @public
 export function formatPx(px: number): string;
+
+// @public
+export function formatSdtDate(iso: string, pattern?: string): string;
 
 // @public
 export interface FormattedTextSegment {
@@ -435,10 +519,16 @@ export function getBodyText(body: DocumentBody): string;
 export function getBodyWordCount(body: DocumentBody): number;
 
 // @public
+export function getContentControlText(control: BlockSdt): string;
+
+// @public
 export function getContrastingColor(backgroundColor: ColorValue | undefined | null, theme: Theme | null | undefined): string;
 
 // @public
 export function getDocumentSummary(doc: Document_2): string;
+
+// @public
+export function getDocumentWatermark(doc: Document_2 | null | undefined): Watermark | undefined;
 
 // @public
 export function getFormattingAtPosition(paragraph: Paragraph, offset: number): Partial<TextFormatting>;
@@ -624,6 +714,12 @@ export function isPositionInHyperlink(paragraph: Paragraph, offset: number): boo
 
 // @public
 export function isPositionInRange(position: Position_2, range: Range_2): boolean;
+
+// @public
+export function isRepeatingSection(props: SdtProperties): boolean;
+
+// @public
+export function isRepeatingSectionItem(props: SdtProperties): boolean;
 
 // @public
 export function isValidVariableName(name: string): boolean;
@@ -857,6 +953,10 @@ export interface ParagraphFormatting {
         numId?: number;
         ilvl?: number;
     };
+    numPrFromStyle?: {
+        numId?: number;
+        ilvl?: number;
+    };
     outlineLevel?: number;
     pageBreakBefore?: boolean;
     runProperties?: TextFormatting;
@@ -1038,10 +1138,24 @@ export interface Relationship {
 }
 
 // @public
+export function removeContentControl(doc: Document_2, filter: ContentControlFilter, options?: {
+    force?: boolean;
+    keepContent?: boolean;
+}): Document_2;
+
+// @public
+export function removeRepeatingSectionItem(doc: Document_2, filter: ContentControlFilter, index: number): Document_2;
+
+// @public
 export function removeVariables(text: string, placeholder?: string): string;
 
 // @public
 export function repackDocx(doc: Document_2, options?: RepackOptions): Promise<ArrayBuffer>;
+
+// @public
+export class RepeatingSectionError extends Error {
+    constructor(message: string);
+}
 
 // @public
 export interface ReplaceTextCommand extends BaseCommand {
@@ -1074,7 +1188,7 @@ export interface Run {
 }
 
 // @public
-export type RunContent = TextContent | TabContent | BreakContent | SymbolContent | NoteReferenceContent | FieldCharContent | InstrTextContent | SoftHyphenContent | NoBreakHyphenContent | DrawingContent | ShapeContent;
+export type RunContent = TextContent | TabContent | BreakContent | SymbolContent | NoteReferenceContent | NoteRefMarkContent | SeparatorContent | FieldCharContent | InstrTextContent | SoftHyphenContent | NoBreakHyphenContent | DrawingContent | ShapeContent;
 
 // @public
 export function sanitizeVariableName(name: string): string;
@@ -1179,6 +1293,19 @@ export function serializeDocx(doc: Document_2): string;
 
 // @public
 export function serializeSectionProperties(props: SectionProperties | undefined): string;
+
+// @public
+export function setContentControlContent(doc: Document_2, filter: ContentControlFilter, replacement: string | BlockContent[], options?: {
+    force?: boolean;
+}): Document_2;
+
+// @public
+export function setContentControlValue(doc: Document_2, filter: ContentControlFilter, value: ContentControlValue, options?: {
+    force?: boolean;
+}): Document_2;
+
+// @public
+export function setDocumentWatermark(doc: Document_2, watermark: Watermark | null): Document_2;
 
 // @public
 export interface SetVariableCommand extends BaseCommand {
