@@ -33,9 +33,16 @@ export interface CommentIdAllocator {
  * Create an instance-scoped monotonic comment/revision ID allocator. IDs are
  * never reused (deleting a comment does not free its ID), and the counter is
  * private to this allocator — multiple editors get independent ID spaces.
+ *
+ * @param base - Offset for the first allocated ID (`base + 1`). Use this to
+ * partition the ID space across collaborating peers so concurrent comment
+ * creations never collide — e.g. `ydoc.clientID * 1_000_000`. Yjs `clientID`
+ * is a uint32, so the product stays well under `Number.MAX_SAFE_INTEGER`
+ * (OOXML `w:id` is `xsd:integer`, no upper bound). Defaults to `0`, which
+ * preserves the original `1, 2, 3, …` sequence for single-editor use.
  */
-export function createCommentIdAllocator(): CommentIdAllocator {
-  let nextId = 1;
+export function createCommentIdAllocator(base = 0): CommentIdAllocator {
+  let nextId = base + 1;
   return {
     next: () => nextId++,
     seedAbove(maxId: number) {

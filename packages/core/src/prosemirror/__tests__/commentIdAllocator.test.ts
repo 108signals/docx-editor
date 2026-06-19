@@ -67,6 +67,44 @@ describe('createCommentIdAllocator', () => {
   });
 });
 
+describe('createCommentIdAllocator(base) — collab partitioning (#257)', () => {
+  test('default base (0) preserves the original 1,2,3 sequence', () => {
+    const implicit = createCommentIdAllocator();
+    const explicit = createCommentIdAllocator(0);
+    expect(implicit.next()).toBe(1);
+    expect(explicit.next()).toBe(1);
+    expect(implicit.next()).toBe(2);
+    expect(explicit.next()).toBe(2);
+  });
+
+  test('two peers with disjoint bases never collide across many allocations', () => {
+    const peerA = createCommentIdAllocator(0);
+    const peerB = createCommentIdAllocator(1_000_000);
+    const seen = new Set<number>();
+    for (let i = 0; i < 100; i++) {
+      const a = peerA.next();
+      const b = peerB.next();
+      expect(seen.has(a)).toBe(false);
+      expect(seen.has(b)).toBe(false);
+      seen.add(a);
+      seen.add(b);
+    }
+    expect(seen.size).toBe(200);
+  });
+
+  test('seedAbove below base is a no-op (counter never lowered)', () => {
+    const a = createCommentIdAllocator(1_000_000);
+    a.seedAbove(50); // a peer's loaded doc has IDs up to 50 — must not pull us down
+    expect(a.next()).toBe(1_000_001);
+  });
+
+  test('seedAbove above base raises past it', () => {
+    const a = createCommentIdAllocator(1_000_000);
+    a.seedAbove(1_000_500);
+    expect(a.next()).toBe(1_000_501);
+  });
+});
+
 describe('seedCommentAllocator', () => {
   test('seeds above the max of comment IDs and revision marks', () => {
     const view = makeView(para('AAA', 'hello world'));
