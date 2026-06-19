@@ -21,6 +21,8 @@ export interface CollaborationState {
   comments: Comment[];
   /** Pass to DocxEditor's `onCommentsChange`. Replaces the Y.Array contents in a single transact. */
   setComments: (next: Comment[]) => void;
+  /** Pass to DocxEditor's `commentIdBase` so each peer mints disjoint comment/revision IDs. */
+  commentIdBase: number;
 }
 
 const SIGNALING_SERVERS = ['wss://signaling.yjs.dev', 'wss://y-webrtc-signaling-eu.herokuapp.com'];
@@ -32,13 +34,14 @@ export function useCollaboration(
   // Y.Doc, provider, prosemirror plugins, and the comments Y.Array are created
   // once per room. localUser changes (e.g. renaming) update awareness without
   // rebuilding the doc.
-  const { ydoc, provider, plugins, yComments } = useMemo(() => {
+  const { ydoc, provider, plugins, yComments, commentIdBase } = useMemo(() => {
     const ydoc = new Y.Doc();
     const provider = new WebrtcProvider(roomName, ydoc, { signaling: SIGNALING_SERVERS });
     const fragment = ydoc.getXmlFragment('prosemirror');
     const plugins = [ySyncPlugin(fragment), yCursorPlugin(provider.awareness), yUndoPlugin()];
     const yComments = ydoc.getArray<Comment>('comments');
-    return { ydoc, provider, plugins, yComments };
+    const commentIdBase = ydoc.clientID * 1_000_000;
+    return { ydoc, provider, plugins, yComments, commentIdBase };
   }, [roomName]);
 
   const [users, setUsers] = useState<CollaborativeUser[]>([]);
@@ -111,5 +114,5 @@ export function useCollaboration(
     };
   }, [provider, ydoc]);
 
-  return { plugins, users, roomName, status, comments, setComments };
+  return { plugins, users, roomName, status, comments, setComments, commentIdBase };
 }
