@@ -60,6 +60,11 @@ export interface DocxEditorProps {
   commentsSidebarOpen?: boolean;
   /** Fires with the next open state whenever the editor wants to show or hide the comments sidebar. Fires in both controlled and uncontrolled modes. */
   onCommentsSidebarOpenChange?: (open: boolean) => void;
+  /**
+   * Partitions comment/revision IDs per collaborating peer so concurrent comment creations never
+   * collide — set to e.g. `ydoc.clientID * 1_000_000`. Read once at mount. Default `0` (`1, 2, …`).
+   */
+  commentIdBase?: number;
   /** Translation overrides merged with English fallback. */
   i18n?: Translations;
   /** Theme override used for toolbar color palettes when the document has no theme. */

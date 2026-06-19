@@ -460,6 +460,7 @@ const props = withDefaults(defineProps<DocxEditorProps>(), {
   // Explicit `undefined` default opts out of Vue's absent-Boolean-prop cast to
   // `false`; without it the sidebar reads as controlled-closed and never opens.
   commentsSidebarOpen: undefined,
+  commentIdBase: 0,
   i18n: undefined,
   theme: null,
   colorMode: 'light',
@@ -827,7 +828,7 @@ const bookmarkOptions = computed(() => {
 // One comment/revision ID allocator per editor instance (monotonic, no reuse),
 // shared by the comment lifecycle and management composables so comment and
 // tracked-change IDs never collide.
-const commentIdAllocator = createCommentIdAllocator();
+const commentIdAllocator = createCommentIdAllocator(props.commentIdBase);
 
 // Comment lifecycle: declared before useFileIO so IO can call extractCommentsAndChanges.
 const {

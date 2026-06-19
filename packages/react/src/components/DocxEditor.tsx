@@ -282,6 +282,11 @@ export interface DocxEditorProps {
   /** Fires with the next open state whenever the editor wants to show or hide the comments sidebar. Fires in both controlled and uncontrolled modes. */
   onCommentsSidebarOpenChange?: (open: boolean) => void;
   /**
+   * Partitions comment/revision IDs per collaborating peer so concurrent comment creations never
+   * collide — set to e.g. `ydoc.clientID * 1_000_000`. Read once at mount. Default `0` (`1, 2, …`).
+   */
+  commentIdBase?: number;
+  /**
    * Callback when rendered DOM context is ready (for plugin overlays).
    * Used by PluginHost to get access to the rendered page DOM for positioning.
    */
@@ -639,6 +644,7 @@ export const DocxEditor = forwardRef<DocxEditorRef, DocxEditorProps>(function Do
     onCommentsChange,
     commentsSidebarOpen,
     onCommentsSidebarOpenChange,
+    commentIdBase = 0,
     externalPlugins,
     externalContent = false,
     onEditorViewReady,
@@ -883,7 +889,7 @@ export const DocxEditor = forwardRef<DocxEditorRef, DocxEditorProps>(function Do
   // One comment/revision ID allocator per editor instance (monotonic, no reuse).
   // Seeded above the loaded doc's max ID on load; shared by every comment/
   // tracked-change allocation in this component and its hooks.
-  const commentIdAllocatorRef = useRef(createCommentIdAllocator());
+  const commentIdAllocatorRef = useRef(createCommentIdAllocator(commentIdBase));
 
   const { resetForNewDocument } = useResetEditorState({
     commentsLoadedRef,
