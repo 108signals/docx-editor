@@ -81,6 +81,12 @@ export default defineConfig({
       reuseExistingServer: !process.env.CI,
       timeout: 120 * 1000,
     },
+    {
+      command: "bun run --filter './examples/collaboration' dev",
+      url: 'http://localhost:5273',
+      reuseExistingServer: !process.env.CI,
+      timeout: 60 * 1000,
+    },
   ],
 
   /* Output directory for screenshots */
