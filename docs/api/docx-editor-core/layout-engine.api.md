@@ -729,6 +729,7 @@ export type TableBlock = {
     width?: number;
     widthType?: string;
     justification?: 'left' | 'center' | 'right';
+    bidi?: boolean;
     indent?: number;
     floating?: FloatingTablePosition;
     pmStart?: number;

@@ -582,6 +582,7 @@ function convertTable(node: PMNode, startPos: number, options: ToFlowBlocksOptio
     width,
     widthType,
     justification,
+    bidi: node.attrs.bidi || undefined,
     indent: indentPx,
     floating: floatingPx,
     pmStart: startPos,

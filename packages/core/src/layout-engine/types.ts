@@ -476,6 +476,8 @@ export type TableBlock = {
   widthType?: string;
   /** Table horizontal alignment */
   justification?: 'left' | 'center' | 'right';
+  /** Visual RTL column order (`w:bidiVisual`): painter renders logical column 0 rightmost. */
+  bidi?: boolean;
   /** Table indent from left margin (in pixels, from w:tblInd) */
   indent?: number;
   /** Floating table properties (pixel values). */
