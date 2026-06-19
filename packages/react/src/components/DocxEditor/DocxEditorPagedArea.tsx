@@ -426,6 +426,7 @@ export function DocxEditorPagedArea({
         <Tooltip content="Add comment" side="bottom" delayMs={300}>
           <button
             type="button"
+            data-testid="floating-add-comment"
             onMouseDown={(e) => {
               e.preventDefault();
               e.stopPropagation();

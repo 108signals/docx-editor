@@ -23,7 +23,11 @@ export interface CollaborationState {
   setComments: (next: Comment[]) => void;
   /** Pass to DocxEditor's `commentIdBase` so each peer mints disjoint comment/revision IDs. */
   commentIdBase: number;
+  /** Pass to DocxEditor's `commentIdStride` so seeding ignores other peers' synced revision marks. */
+  commentIdStride: number;
 }
+
+const COMMENT_ID_STRIDE = 1_000_000;
 
 const SIGNALING_SERVERS = ['wss://signaling.yjs.dev', 'wss://y-webrtc-signaling-eu.herokuapp.com'];
 
@@ -40,7 +44,7 @@ export function useCollaboration(
     const fragment = ydoc.getXmlFragment('prosemirror');
     const plugins = [ySyncPlugin(fragment), yCursorPlugin(provider.awareness), yUndoPlugin()];
     const yComments = ydoc.getArray<Comment>('comments');
-    const commentIdBase = ydoc.clientID * 1_000_000;
+    const commentIdBase = ydoc.clientID * COMMENT_ID_STRIDE;
     return { ydoc, provider, plugins, yComments, commentIdBase };
   }, [roomName]);
 
@@ -114,5 +118,14 @@ export function useCollaboration(
     };
   }, [provider, ydoc]);
 
-  return { plugins, users, roomName, status, comments, setComments, commentIdBase };
+  return {
+    plugins,
+    users,
+    roomName,
+    status,
+    comments,
+    setComments,
+    commentIdBase,
+    commentIdStride: COMMENT_ID_STRIDE,
+  };
 }

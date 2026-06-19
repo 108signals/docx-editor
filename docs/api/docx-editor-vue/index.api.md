@@ -54,6 +54,7 @@ export interface DocxEditorProps {
     className?: string;
     colorMode?: 'light' | 'dark' | 'system';
     commentIdBase?: number;
+    commentIdStride?: number;
     commentsSidebarOpen?: boolean;
     disableFindReplaceShortcuts?: boolean;
     document?: Document_2 | null;

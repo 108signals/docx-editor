@@ -12,37 +12,19 @@ import { test, expect, Page } from '@playwright/test';
 
 const COLLAB_URL = 'http://localhost:5273';
 const SIDEBAR = '.docx-unified-sidebar';
-
-async function clickFloatingAddComment(page: Page) {
-  await page.waitForFunction(() => {
-    for (const b of document.querySelectorAll('[data-testid="docx-editor"] button')) {
-      const s = getComputedStyle(b);
-      if (s.position === 'absolute' && s.zIndex === '50') return true;
-    }
-    return false;
-  });
-  const handle = await page.evaluateHandle(() => {
-    for (const b of document.querySelectorAll('[data-testid="docx-editor"] button')) {
-      const s = getComputedStyle(b);
-      if (s.position === 'absolute' && s.zIndex === '50') return b;
-    }
-    return null;
-  });
-  await handle.asElement()!.click();
-}
+const ADD_COMMENT_BTN = '[data-testid="floating-add-comment"]';
 
 async function addComment(page: Page, body: string): Promise<number> {
   await page.locator('.layout-page-content').click({ clickCount: 3 });
-  await clickFloatingAddComment(page);
+  await page.locator(ADD_COMMENT_BTN).click();
   const ta = page.locator(`${SIDEBAR} textarea`).last();
   await ta.waitFor({ state: 'visible' });
   await ta.fill(body);
   await ta.press('Enter');
-  await page.waitForSelector(`${SIDEBAR} .docx-comment-card[data-comment-id]`);
-  const id = await page
-    .locator(`${SIDEBAR} .docx-comment-card[data-comment-id]`)
-    .last()
-    .getAttribute('data-comment-id');
+  const card = page.locator(`${SIDEBAR} .docx-comment-card[data-comment-id]`).last();
+  await card.waitFor({ state: 'visible' });
+  const id = await card.getAttribute('data-comment-id');
+  if (id == null) throw new Error('comment card rendered without data-comment-id');
   return Number(id);
 }
 

@@ -61,10 +61,17 @@ export interface DocxEditorProps {
   /** Fires with the next open state whenever the editor wants to show or hide the comments sidebar. Fires in both controlled and uncontrolled modes. */
   onCommentsSidebarOpenChange?: (open: boolean) => void;
   /**
-   * Partitions comment/revision IDs per collaborating peer so concurrent comment creations never
-   * collide — set to e.g. `ydoc.clientID * 1_000_000`. Read once at mount. Default `0` (`1, 2, …`).
+   * Partitions comment/revision IDs per collaborating peer so concurrent allocations never collide —
+   * set to e.g. `ydoc.clientID * 1_000_000` with `commentIdStride={1_000_000}`. Read once at mount.
+   * Default `0` (`1, 2, …`).
    */
   commentIdBase?: number;
+  /**
+   * Width of this peer's comment-ID partition; IDs outside `(base, base+stride]` are ignored when
+   * seeding so a peer's synced tracked-change marks can't pull this peer into their range. Read
+   * once at mount. Default `Infinity` (single editor).
+   */
+  commentIdStride?: number;
   /** Translation overrides merged with English fallback. */
   i18n?: Translations;
   /** Theme override used for toolbar color palettes when the document has no theme. */

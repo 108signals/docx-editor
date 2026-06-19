@@ -34,19 +34,24 @@ export interface CommentIdAllocator {
  * never reused (deleting a comment does not free its ID), and the counter is
  * private to this allocator — multiple editors get independent ID spaces.
  *
- * @param base - Offset for the first allocated ID (`base + 1`). Use this to
- * partition the ID space across collaborating peers so concurrent comment
- * creations never collide — e.g. `ydoc.clientID * 1_000_000`. Yjs `clientID`
- * is a uint32, so the product stays well under `Number.MAX_SAFE_INTEGER`
- * (OOXML `w:id` is `xsd:integer`, no upper bound). Defaults to `0`, which
- * preserves the original `1, 2, 3, …` sequence for single-editor use.
+ * @param base - Offset for the first allocated ID (`base + 1`). Pair with
+ * `stride` to partition the ID space across collaborating peers so concurrent
+ * allocations never collide — e.g. `ydoc.clientID * 1_000_000` with
+ * `stride = 1_000_000`. Yjs `clientID` is a uint32, so the product stays well
+ * under `Number.MAX_SAFE_INTEGER` (OOXML `w:id` is `xsd:integer`, no upper
+ * bound). Defaults to `0`, preserving the original `1, 2, 3, …` sequence.
+ * @param stride - Width of this allocator's partition. `seedAbove` ignores IDs
+ * outside `(base, base + stride]` so a peer's synced revision marks can't pull
+ * this allocator into their partition. Defaults to `Infinity` (single editor:
+ * every ID is in-partition).
  */
-export function createCommentIdAllocator(base = 0): CommentIdAllocator {
+export function createCommentIdAllocator(base = 0, stride = Infinity): CommentIdAllocator {
   let nextId = base + 1;
+  const ceiling = base + stride;
   return {
     next: () => nextId++,
     seedAbove(maxId: number) {
-      if (maxId >= nextId) nextId = maxId + 1;
+      if (maxId >= nextId && maxId <= ceiling) nextId = maxId + 1;
     },
   };
 }
@@ -64,14 +69,12 @@ export function seedCommentAllocator(
   comments: Comment[] | undefined,
   view: EditorView | null
 ): void {
-  let max = 0;
-  for (const comment of comments ?? []) max = Math.max(max, comment.id);
-  if (view) {
-    view.state.doc.descendants((node) => {
-      for (const mark of node.marks) {
-        if (mark.attrs.revisionId != null) max = Math.max(max, mark.attrs.revisionId as number);
-      }
-    });
-  }
-  allocator.seedAbove(max);
+  // Seed per-ID (not via a single global max) so an out-of-partition ID — e.g.
+  // a collab peer's synced revision mark — doesn't mask an in-partition one.
+  for (const comment of comments ?? []) allocator.seedAbove(comment.id);
+  view?.state.doc.descendants((node) => {
+    for (const mark of node.marks) {
+      if (mark.attrs.revisionId != null) allocator.seedAbove(mark.attrs.revisionId as number);
+    }
+  });
 }

@@ -13,7 +13,7 @@ export interface CommentIdAllocator {
 }
 
 // @public
-export function createCommentIdAllocator(): CommentIdAllocator;
+export function createCommentIdAllocator(base?: number, stride?: number): CommentIdAllocator;
 
 // @public
 export const PENDING_COMMENT_ID = -1;

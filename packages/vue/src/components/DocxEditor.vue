@@ -232,6 +232,7 @@
           <button
             v-if="floatingCommentBtn && !isAddingComment && !readOnly"
             type="button"
+            data-testid="floating-add-comment"
             class="docx-editor-vue__floating-comment"
             :style="{ top: floatingCommentBtn.top + 'px', left: floatingCommentBtn.left + 'px' }"
             :title="t('comments.addComment')"
@@ -461,6 +462,7 @@ const props = withDefaults(defineProps<DocxEditorProps>(), {
   // `false`; without it the sidebar reads as controlled-closed and never opens.
   commentsSidebarOpen: undefined,
   commentIdBase: 0,
+  commentIdStride: undefined,
   i18n: undefined,
   theme: null,
   colorMode: 'light',
@@ -828,7 +830,7 @@ const bookmarkOptions = computed(() => {
 // One comment/revision ID allocator per editor instance (monotonic, no reuse),
 // shared by the comment lifecycle and management composables so comment and
 // tracked-change IDs never collide.
-const commentIdAllocator = createCommentIdAllocator(props.commentIdBase);
+const commentIdAllocator = createCommentIdAllocator(props.commentIdBase, props.commentIdStride);
 
 // Comment lifecycle: declared before useFileIO so IO can call extractCommentsAndChanges.
 const {

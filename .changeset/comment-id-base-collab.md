@@ -4,4 +4,4 @@
 '@eigenpal/docx-editor-vue': minor
 ---
 
-Add `commentIdBase` prop to partition comment/revision IDs per collaborating peer. Fixes #257.
+Add `commentIdBase`/`commentIdStride` props to partition comment/revision IDs per collaborating peer. Fixes #257.

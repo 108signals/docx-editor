@@ -98,10 +98,25 @@ describe('createCommentIdAllocator(base) — collab partitioning (#257)', () => 
     expect(a.next()).toBe(1_000_001);
   });
 
-  test('seedAbove above base raises past it', () => {
-    const a = createCommentIdAllocator(1_000_000);
+  test('seedAbove with an in-partition ID raises past it', () => {
+    const a = createCommentIdAllocator(1_000_000, 1_000_000);
     a.seedAbove(1_000_500);
     expect(a.next()).toBe(1_000_501);
+  });
+
+  test('seedAbove ignores out-of-partition IDs (synced peer revision marks)', () => {
+    // Greptile P1 repro: peer A (base 5M) mints revisionId 5_000_001, Yjs
+    // syncs it into peer B's PM state, B re-seeds before its next comment.
+    // Without the stride clamp B would jump to 5_000_002 and collide with A.
+    const b = createCommentIdAllocator(1_000_000, 1_000_000);
+    b.seedAbove(5_000_001);
+    expect(b.next()).toBe(1_000_001);
+  });
+
+  test('default stride (Infinity) treats every ID as in-partition', () => {
+    const a = createCommentIdAllocator(1_000_000);
+    a.seedAbove(9_000_000);
+    expect(a.next()).toBe(9_000_001);
   });
 });
 
@@ -134,5 +149,18 @@ describe('seedCommentAllocator', () => {
     const a = createCommentIdAllocator();
     seedCommentAllocator(a, [{ id: 9, author: 'x', date: '', content: [] }], null);
     expect(a.next()).toBe(10);
+  });
+
+  test('out-of-partition revision marks in view do not pull a strided allocator across', () => {
+    const view = makeView(para('AAA', 'hello world'));
+    const peerA = createCommentIdAllocator(5_000_000);
+    applyProposedChange(
+      view,
+      { paraId: 'AAA', search: 'world', replaceWith: '', author: 'A' },
+      peerA
+    );
+    const peerB = createCommentIdAllocator(1_000_000, 1_000_000);
+    seedCommentAllocator(peerB, [], view);
+    expect(peerB.next()).toBe(1_000_001);
   });
 });

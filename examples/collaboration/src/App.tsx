@@ -76,10 +76,8 @@ export function App() {
   const [room] = useState(getOrCreateRoomFromUrl);
   const [shareCopied, setShareCopied] = useState(false);
 
-  const { plugins, users, status, comments, setComments, commentIdBase } = useCollaboration(
-    room,
-    user
-  );
+  const { plugins, users, status, comments, setComments, commentIdBase, commentIdStride } =
+    useCollaboration(room, user);
   const { zoom: autoZoom, isMobile } = useResponsiveLayout();
 
   // Empty document acts purely as a schema seed. ySyncPlugin populates the real
@@ -132,6 +130,7 @@ export function App() {
           comments={comments}
           onCommentsChange={setComments}
           commentIdBase={commentIdBase}
+          commentIdStride={commentIdStride}
           author={user.name}
           showToolbar
           showRuler={!isMobile}
