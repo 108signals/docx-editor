@@ -8,7 +8,12 @@ const monorepoRoot = path.resolve(__dirname, '../..');
 
 async function fetchGitHubStars(): Promise<number | null> {
   try {
-    const res = await fetch('https://api.github.com/repos/eigenpal/docx-editor');
+    // Time-box the request: this is awaited before the dev server finishes
+    // booting, so an unreachable/black-holed network must fail fast rather than
+    // hang the Playwright webServer startup window.
+    const res = await fetch('https://api.github.com/repos/eigenpal/docx-editor', {
+      signal: AbortSignal.timeout(2000),
+    });
     const data = await res.json();
     if (typeof data.stargazers_count === 'number') return data.stargazers_count;
   } catch {}

@@ -1,5 +1,19 @@
 import { defineConfig, devices } from '@playwright/test';
 
+// Which projects did the CLI ask for (`--project=x` or `--project x`)? Empty
+// means "all projects".
+const requestedProjects = process.argv.reduce<string[]>((acc, arg, i) => {
+  if (arg.startsWith('--project=')) acc.push(arg.slice('--project='.length));
+  else if (arg === '--project') acc.push(process.argv[i + 1]);
+  return acc;
+}, []);
+
+// The collaboration example backs only `collab-comment-id.spec.ts`, which runs
+// under the default `chromium` project. Boot its dev server only when that
+// project is in scope so project-scoped runs — notably the release publish-path
+// parity smoke gate (`--project=parity`) — don't pay for an unrelated server.
+const collabServerNeeded = requestedProjects.length === 0 || requestedProjects.includes('chromium');
+
 export default defineConfig({
   testDir: './e2e',
   fullyParallel: true,
@@ -81,12 +95,16 @@ export default defineConfig({
       reuseExistingServer: !process.env.CI,
       timeout: 120 * 1000,
     },
-    {
-      command: "bun run --filter './examples/collaboration' dev",
-      url: 'http://localhost:5273',
-      reuseExistingServer: !process.env.CI,
-      timeout: 60 * 1000,
-    },
+    ...(collabServerNeeded
+      ? [
+          {
+            command: "bun run --filter './examples/collaboration' dev",
+            url: 'http://localhost:5273',
+            reuseExistingServer: !process.env.CI,
+            timeout: 60 * 1000,
+          },
+        ]
+      : []),
   ],
 
   /* Output directory for screenshots */

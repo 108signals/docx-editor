@@ -44,6 +44,13 @@ export interface CommentIdAllocator {
  * outside `(base, base + stride]` so a peer's synced revision marks can't pull
  * this allocator into their partition. Defaults to `Infinity` (single editor:
  * every ID is in-partition).
+ *
+ * Collision-freedom across peers holds under two assumptions: (1) peers pass
+ * distinct `base` values — with `clientID * stride` this means distinct Yjs
+ * `clientID`s, which Yjs already relies on; and (2) a peer mints fewer than
+ * `stride` IDs per session, since `next()` is unbounded and would climb past
+ * `base + stride` into the neighbouring partition. Both hold comfortably for
+ * realistic sessions (`stride = 1_000_000`).
  */
 export function createCommentIdAllocator(base = 0, stride = Infinity): CommentIdAllocator {
   let nextId = base + 1;
