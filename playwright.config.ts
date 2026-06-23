@@ -14,6 +14,35 @@ const requestedProjects = process.argv.reduce<string[]>((acc, arg, i) => {
 // parity smoke gate (`--project=parity`) — don't pay for an unrelated server.
 const collabServerNeeded = requestedProjects.length === 0 || requestedProjects.includes('chromium');
 
+// The React-only large-document perf specs (and the !check-performance workflow)
+// don't need the Vue/Nuxt demos. Setting PERF_REACT_ONLY=1 boots just the React
+// dev server, which avoids the slow Nuxt startup and keeps the perf job lean.
+const reactDevServer = {
+  command: 'bun run dev:react',
+  url: 'http://localhost:5173',
+  reuseExistingServer: !process.env.CI,
+  timeout: 60 * 1000,
+};
+const vueDevServer = {
+  command: 'bun run dev:vue',
+  url: 'http://localhost:5174',
+  reuseExistingServer: !process.env.CI,
+  timeout: 60 * 1000,
+};
+const nuxtDevServer = {
+  // Nuxt dev is slower to boot than Vite — allow extra startup time.
+  command: 'bun run dev:nuxt',
+  url: 'http://localhost:3002',
+  reuseExistingServer: !process.env.CI,
+  timeout: 120 * 1000,
+};
+const collabDevServer = {
+  command: "bun run --filter './examples/collaboration' dev",
+  url: 'http://localhost:5273',
+  reuseExistingServer: !process.env.CI,
+  timeout: 60 * 1000,
+};
+
 export default defineConfig({
   testDir: './e2e',
   fullyParallel: true,
@@ -76,35 +105,12 @@ export default defineConfig({
 
   /* Run dev servers before tests */
   webServer: [
-    {
-      command: 'bun run dev:react',
-      url: 'http://localhost:5173',
-      reuseExistingServer: !process.env.CI,
-      timeout: 60 * 1000,
-    },
-    {
-      command: 'bun run dev:vue',
-      url: 'http://localhost:5174',
-      reuseExistingServer: !process.env.CI,
-      timeout: 60 * 1000,
-    },
-    {
-      // Nuxt dev is slower to boot than Vite — allow extra startup time.
-      command: 'bun run dev:nuxt',
-      url: 'http://localhost:3002',
-      reuseExistingServer: !process.env.CI,
-      timeout: 120 * 1000,
-    },
-    ...(collabServerNeeded
-      ? [
-          {
-            command: "bun run --filter './examples/collaboration' dev",
-            url: 'http://localhost:5273',
-            reuseExistingServer: !process.env.CI,
-            timeout: 60 * 1000,
-          },
-        ]
-      : []),
+    ...(process.env.PERF_REACT_ONLY
+      ? [reactDevServer]
+      : [reactDevServer, vueDevServer, nuxtDevServer]),
+    // Collab example backs the chromium-only collab spec; skip it in the lean
+    // perf run even though chromium is technically in scope.
+    ...(collabServerNeeded && !process.env.PERF_REACT_ONLY ? [collabDevServer] : []),
   ],
 
   /* Output directory for screenshots */

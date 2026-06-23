@@ -1,6 +1,6 @@
 {
   "name": "@eigenpal/docx-editor-core",
-  "version": "1.8.2",
+  "version": "1.9.0",
   "sideEffects": false,
   "description": "Framework-agnostic core for DOCX parsing, editing, and rendering",
   "main": "./dist/core.js",
@@ -608,6 +608,7 @@
   },
   "dependencies": {
     "docxtemplater": "^3.50.0",
+    "dompurify": "^3.2.0",
     "jszip": "^3.10.1",
     "pizzip": "^3.1.7",
     "xml-js": "^1.6.11"
