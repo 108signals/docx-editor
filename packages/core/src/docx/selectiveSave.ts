@@ -10,6 +10,7 @@
 
 import type { Document, BlockContent } from '../types/document';
 import { serializeDocument } from './serializer/documentSerializer';
+import { remapOversizedRevisionIds } from './serializer/decimalIdRemap';
 import {
   serializeCommentsWithInfo,
   serializeCommentsExtended,
@@ -105,6 +106,10 @@ export async function attemptSelectiveSave(
   // Check for new images/hyperlinks that need relationship management
   const content = doc.package.document.content;
   if (hasNewImagesOrHyperlinks(content)) return null;
+
+  // Collab-partitioned comment/revision IDs need a document-wide renumber that
+  // touches commentRange markers in unchanged paragraphs — full repack only.
+  if (remapOversizedRevisionIds(doc)) return null;
 
   const comments = doc.package.document.comments;
   const hasComments = comments && comments.length > 0;

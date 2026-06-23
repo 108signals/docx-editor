@@ -15,17 +15,26 @@ const SIDEBAR = '.docx-unified-sidebar';
 const ADD_COMMENT_BTN = '[data-testid="floating-add-comment"]';
 
 async function addComment(page: Page, body: string): Promise<number> {
+  // Snapshot existing IDs first, then wait for a NEW one to appear — `.last()`
+  // would race against the peer's comment syncing into this sidebar.
+  const before = new Set(await visibleCommentIds(page));
   await page.locator('.layout-page-content').click({ clickCount: 3 });
   await page.locator(ADD_COMMENT_BTN).click();
   const ta = page.locator(`${SIDEBAR} textarea`).last();
   await ta.waitFor({ state: 'visible' });
   await ta.fill(body);
   await ta.press('Enter');
-  const card = page.locator(`${SIDEBAR} .docx-comment-card[data-comment-id]`).last();
-  await card.waitFor({ state: 'visible' });
-  const id = await card.getAttribute('data-comment-id');
-  if (id == null) throw new Error('comment card rendered without data-comment-id');
-  return Number(id);
+  let added: number | undefined;
+  await expect
+    .poll(
+      async () => {
+        added = (await visibleCommentIds(page)).find((id) => !before.has(id));
+        return added;
+      },
+      { timeout: 10_000 }
+    )
+    .toBeDefined();
+  return added!;
 }
 
 async function visibleCommentIds(page: Page): Promise<number[]> {

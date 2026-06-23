@@ -39,6 +39,7 @@
 import JSZip from 'jszip';
 import type { Document } from '../types/document';
 import { serializeDocument } from './serializer/documentSerializer';
+import { remapOversizedRevisionIds } from './serializer/decimalIdRemap';
 import { type RawDocxContent } from './unzip';
 import { escapeXml } from './serializer/xmlUtils';
 
@@ -105,6 +106,10 @@ export async function repackDocx(doc: Document, options: RepackOptions = {}): Pr
 
   const { compressionLevel = 6, updateModifiedDate = true, modifiedBy } = options;
   const exportDocument = doc;
+
+  // Compact collab-partitioned comment/revision IDs down to Word's signed-int32
+  // range before serializing any part. No-op for normal single-editor saves.
+  remapOversizedRevisionIds(exportDocument);
 
   // Load the original ZIP
   const originalZip = await JSZip.loadAsync(doc.originalBuffer);
@@ -204,6 +209,8 @@ export async function repackDocxFromRaw(
 ): Promise<ArrayBuffer> {
   const { compressionLevel = 6, updateModifiedDate = true, modifiedBy } = options;
   const exportDocument = doc;
+
+  remapOversizedRevisionIds(exportDocument);
 
   // Create a new ZIP with all original files
   const newZip = new JSZip();

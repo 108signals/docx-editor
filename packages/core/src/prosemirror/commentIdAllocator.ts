@@ -37,9 +37,11 @@ export interface CommentIdAllocator {
  * @param base - Offset for the first allocated ID (`base + 1`). Pair with
  * `stride` to partition the ID space across collaborating peers so concurrent
  * allocations never collide — e.g. `ydoc.clientID * 1_000_000` with
- * `stride = 1_000_000`. Yjs `clientID` is a uint32, so the product stays well
- * under `Number.MAX_SAFE_INTEGER` (OOXML `w:id` is `xsd:integer`, no upper
- * bound). Defaults to `0`, preserving the original `1, 2, 3, …` sequence.
+ * `stride = 1_000_000`. Defaults to `0`, preserving the original `1, 2, 3, …`
+ * sequence. These IDs are **in-memory only**: the OOXML schema types `w:id` as
+ * unbounded `xsd:integer`, but Word reads it as signed int32, so the serializer
+ * compacts to `1..N` on save when any ID exceeds `0x7FFFFFFF`
+ * (`docx/serializer/decimalIdRemap.ts`).
  * @param stride - Width of this allocator's partition. `seedAbove` ignores IDs
  * outside `(base, base + stride]` so a peer's synced revision marks can't pull
  * this allocator into their partition. Defaults to `Infinity` (single editor:
@@ -48,15 +50,30 @@ export interface CommentIdAllocator {
  * Collision-freedom across peers holds under two assumptions: (1) peers pass
  * distinct `base` values — with `clientID * stride` this means distinct Yjs
  * `clientID`s, which Yjs already relies on; and (2) a peer mints fewer than
- * `stride` IDs per session, since `next()` is unbounded and would climb past
+ * `stride` IDs per session. `next()` warns (dev only) if it climbs past
  * `base + stride` into the neighbouring partition. Both hold comfortably for
  * realistic sessions (`stride = 1_000_000`).
  */
 export function createCommentIdAllocator(base = 0, stride = Infinity): CommentIdAllocator {
   let nextId = base + 1;
   const ceiling = base + stride;
+  let warned = false;
   return {
-    next: () => nextId++,
+    next: () => {
+      const id = nextId++;
+      if (
+        !warned &&
+        id > ceiling &&
+        typeof process !== 'undefined' &&
+        process.env?.NODE_ENV !== 'production'
+      ) {
+        warned = true;
+        console.warn(
+          `[docx-editor] commentIdAllocator overflowed its partition (base=${base}, stride=${stride}).`
+        );
+      }
+      return id;
+    },
     seedAbove(maxId: number) {
       if (maxId >= nextId && maxId <= ceiling) nextId = maxId + 1;
     },
