@@ -230,11 +230,13 @@ export default [
   // hoisted — the footnote-surface destructure from useDocxEditor, the
   // footnote routing passed to usePagesPointer, and the useFootnoteOverlay
   // wiring (the heavy logic already lives in useFootnotePM / useFootnoteOverlay
-  // / FootnoteOverlay.vue). Bumped to 1250 for that residual glue.
+  // / FootnoteOverlay.vue). Bumped to 1250 for that residual glue. The
+  // collab comment-id props (commentIdBase / commentIdStride, #257) add two
+  // withDefaults entries plus the allocator wiring inline; bumped to 1260.
   {
     files: ['packages/vue/src/components/DocxEditor.vue'],
     rules: {
-      'max-lines': ['error', { max: 1250, skipBlankLines: false, skipComments: false }],
+      'max-lines': ['error', { max: 1260, skipBlankLines: false, skipComments: false }],
     },
   },
 
@@ -261,6 +263,18 @@ export default [
     files: ['packages/vue/src/components/Toolbar.vue'],
     rules: {
       'max-lines': ['error', { max: 1200, skipBlankLines: false, skipComments: false }],
+    },
+  },
+
+  // useDocxEditor.ts is the Vue composable twin of React's PagedEditor — the
+  // single orchestration surface for layout, paint, selection, and HF wiring.
+  // It sat right at the default 1000 cap; editable footnotes (#995) pushed it
+  // just over. Modest headroom while the orchestration split (issue #696,
+  // shared core engine) lands; the cap still enforces a ceiling.
+  {
+    files: ['packages/vue/src/composables/useDocxEditor.ts'],
+    rules: {
+      'max-lines': ['error', { max: 1050, skipBlankLines: false, skipComments: false }],
     },
   },
 
