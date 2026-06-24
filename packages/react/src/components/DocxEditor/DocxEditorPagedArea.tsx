@@ -35,6 +35,7 @@ import type { HyperlinkPopupData } from '../ui/HyperlinkPopup';
 import type { WrapType } from '@eigenpal/docx-editor-core/docx/wrapTypes';
 import type { ReactSidebarItem } from '../../plugin-api/types';
 import type { RenderedDomContext } from '../../plugin-api/types';
+import { shouldComputeAnchorPositions } from './internals/anchorPositionsNeeded';
 
 /**
  * Body of the editor: the paged ProseMirror host, its sidebar overlay
@@ -190,6 +191,8 @@ export function DocxEditorPagedArea({
   isSuggesting?: boolean;
   author?: string;
 }) {
+  const needsAnchorPositions = shouldComputeAnchorPositions(sidebarItems, comments);
+
   // Resolve the active HF block for the inline editor — first-page variant
   // wins when `titlePg` is set and the user double-clicked page 1.
   const activeHf = hfEditPosition
@@ -391,7 +394,7 @@ export function DocxEditorPagedArea({
         onHyperlinkPopupClose={onHyperlinkPopupClose}
         onContextMenu={onContextMenu}
         commentsSidebarOpen={sidebarOpen}
-        onAnchorPositionsChange={onAnchorPositionsChange}
+        onAnchorPositionsChange={needsAnchorPositions ? onAnchorPositionsChange : undefined}
         onTotalPagesChange={onTotalPagesChange}
         resolvedCommentIds={resolvedIdsForRender}
         scrollContainerRef={scrollContainerRef}
