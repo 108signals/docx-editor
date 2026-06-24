@@ -70,9 +70,12 @@ async function measureTypingAtPage(
   page: Page,
   pageNumber: number,
   label: string,
-  metricPrefix: string
+  metricPrefix: string,
+  options: { placeCursor?: boolean } = {}
 ): Promise<void> {
-  await placeCursorOnPage(page, pageNumber);
+  if (options.placeCursor !== false) {
+    await placeCursorOnPage(page, pageNumber);
+  }
 
   await page.keyboard.press('x');
   await page.evaluate(
@@ -150,7 +153,7 @@ test.describe('Large Document Performance - government template (#1006)', () => 
     await placeCursorOnPage(page, 1);
     await page.keyboard.press(`${MODIFIER}+Home`);
     await page.waitForTimeout(300);
-    await measureTypingAtPage(page, 1, 'Start-of-doc', 'typing.start');
+    await measureTypingAtPage(page, 1, 'Start-of-doc', 'typing.start', { placeCursor: false });
 
     const pageCount = await page.locator('[data-page-number]').count();
     const midPageNum = Math.floor(pageCount / 2);
@@ -173,7 +176,7 @@ test.describe('Large Document Performance - government template (#1006)', () => 
     await placeCursorOnPage(page, pageCount);
     await page.keyboard.press(`${MODIFIER}+End`);
     await page.waitForTimeout(300);
-    await measureTypingAtPage(page, pageCount, 'End-of-doc', 'typing.end');
+    await measureTypingAtPage(page, pageCount, 'End-of-doc', 'typing.end', { placeCursor: false });
   });
 
   test('undo and redo stay responsive after an edit', async ({ page }) => {

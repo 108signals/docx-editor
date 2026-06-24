@@ -21,7 +21,7 @@
     {
       "key": "typing.start.avgMs",
       "label": "Start-of-doc typing (avg)",
-      "value": 800,
+      "value": 799,
       "unit": "ms",
       "direction": "lower-is-better"
     },
@@ -35,7 +35,7 @@
     {
       "key": "typing.middle.avgMs",
       "label": "Mid-doc typing (avg)",
-      "value": 800,
+      "value": 799,
       "unit": "ms",
       "direction": "lower-is-better"
     },
@@ -49,7 +49,7 @@
     {
       "key": "typing.end.avgMs",
       "label": "End-of-doc typing (avg)",
-      "value": 800,
+      "value": 799,
       "unit": "ms",
       "direction": "lower-is-better"
     },
@@ -63,14 +63,14 @@
     {
       "key": "undo.avgMs",
       "label": "Undo (avg)",
-      "value": 1200,
+      "value": 1199,
       "unit": "ms",
       "direction": "lower-is-better"
     },
     {
       "key": "redo.avgMs",
       "label": "Redo (avg)",
-      "value": 1200,
+      "value": 1199,
       "unit": "ms",
       "direction": "lower-is-better"
     }

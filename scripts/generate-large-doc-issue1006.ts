@@ -19,14 +19,25 @@ const SECTION_COUNT = 33;
 const BODY_PARAGRAPHS_PER_SECTION = 70;
 const TARGET_BOOKMARKS = 4_250;
 
-const CONTENT_TYPES_XML = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+function contentTypesXml(): string {
+  const headerOverrides: string[] = [];
+  for (let section = 1; section <= SECTION_COUNT; section++) {
+    headerOverrides.push(
+      `  <Override PartName="/word/header${section}.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.header+xml"/>`
+    );
+  }
+
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
   <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
   <Default Extension="xml" ContentType="application/xml"/>
   <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
   <Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>
   <Override PartName="/word/numbering.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.numbering+xml"/>
+  <Override PartName="/word/settings.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.settings+xml"/>
+${headerOverrides.join('\n')}
 </Types>`;
+}
 
 const RELS_XML = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
@@ -341,7 +352,7 @@ async function main() {
 
   const { documentXml, wordCount, charCount } = generateDocument();
   const zip = new JSZip();
-  zip.file('[Content_Types].xml', CONTENT_TYPES_XML);
+  zip.file('[Content_Types].xml', contentTypesXml());
   zip.file('_rels/.rels', RELS_XML);
   zip.file('word/_rels/document.xml.rels', documentRelationshipsXml());
   zip.file('word/styles.xml', STYLES_XML);
