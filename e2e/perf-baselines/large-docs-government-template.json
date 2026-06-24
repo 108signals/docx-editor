@@ -1,0 +1,78 @@
+{
+  "suite": "large-docs-government-template",
+  "capturedAt": "seed",
+  "seed": true,
+  "note": "Conservative seed baseline for issue #1006 synthetic government-template documents. Refresh with real CI numbers after the fixture is accepted and generated on main.",
+  "metrics": [
+    {
+      "key": "load.timeMs",
+      "label": "Doc load",
+      "value": 10000,
+      "unit": "ms",
+      "direction": "lower-is-better"
+    },
+    {
+      "key": "load.pageCount",
+      "label": "Page count",
+      "value": 300,
+      "unit": "count",
+      "direction": "informational"
+    },
+    {
+      "key": "typing.start.avgMs",
+      "label": "Start-of-doc typing (avg)",
+      "value": 800,
+      "unit": "ms",
+      "direction": "lower-is-better"
+    },
+    {
+      "key": "typing.start.maxMs",
+      "label": "Start-of-doc typing (max)",
+      "value": 1200,
+      "unit": "ms",
+      "direction": "lower-is-better"
+    },
+    {
+      "key": "typing.middle.avgMs",
+      "label": "Mid-doc typing (avg)",
+      "value": 800,
+      "unit": "ms",
+      "direction": "lower-is-better"
+    },
+    {
+      "key": "typing.middle.maxMs",
+      "label": "Mid-doc typing (max)",
+      "value": 1200,
+      "unit": "ms",
+      "direction": "lower-is-better"
+    },
+    {
+      "key": "typing.end.avgMs",
+      "label": "End-of-doc typing (avg)",
+      "value": 800,
+      "unit": "ms",
+      "direction": "lower-is-better"
+    },
+    {
+      "key": "typing.end.maxMs",
+      "label": "End-of-doc typing (max)",
+      "value": 1200,
+      "unit": "ms",
+      "direction": "lower-is-better"
+    },
+    {
+      "key": "undo.avgMs",
+      "label": "Undo (avg)",
+      "value": 1200,
+      "unit": "ms",
+      "direction": "lower-is-better"
+    },
+    {
+      "key": "redo.avgMs",
+      "label": "Redo (avg)",
+      "value": 1200,
+      "unit": "ms",
+      "direction": "lower-is-better"
+    }
+  ]
+}
